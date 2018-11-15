@@ -70,8 +70,16 @@
 #define iGS(x) ((x >> SOF_GLB_TYPE_SHIFT) & 0xf)
 #define iCS(x) ((x >> SOF_CMD_TYPE_SHIFT) & 0xfff)
 
-#define IPC_INVALID_SIZE(ipc) \
-	(sizeof(*(ipc)) != ipc->hdr.size)
+/*
+ * ABI version compatibility rules :-
+ *
+ * 1) Host drivers will support the current and some older MAJOR versions of
+ *    the IPC ABI (up to a certain age).
+ * 2) FW binaries will only support one MAJOR ABI version which is advertised
+ *    to host at FW boot.
+ * 3) MINOR and PATCH versions can differ between host and FW but must be
+ *    backwards compatible on both host and FW.
+ */
 
 /* IPC context - shared with platform IPC driver */
 struct ipc *_ipc;
@@ -184,13 +192,6 @@ static int ipc_stream_pcm_params(uint32_t stream)
 	int err, posn_offset;
 
 	trace_ipc("ipc: comp %d -> params", pcm_params->comp_id);
-
-	/* sanity check size */
-	if (IPC_INVALID_SIZE(pcm_params)) {
-		trace_ipc_error("ipc:_invalid IPC size 0x%x got 0x%x",
-				sizeof(*pcm_params), pcm_params->hdr.size);
-		return -EINVAL;
-	}
 
 	/* get the pcm_dev */
 	pcm_dev = ipc_get_comp(_ipc, pcm_params->comp_id);
@@ -307,13 +308,6 @@ static int ipc_stream_pcm_free(uint32_t header)
 
 	trace_ipc("ipc: comp %d -> free", free_req->comp_id);
 
-	/* sanity check size */
-	if (IPC_INVALID_SIZE(free_req)) {
-		trace_ipc_error("ipc:_invalid IPC size 0x%x got 0x%x",
-				sizeof(*free_req), free_req->hdr.size);
-		return -EINVAL;
-	}
-
 	/* get the pcm_dev */
 	pcm_dev = ipc_get_comp(_ipc, free_req->comp_id);
 	if (pcm_dev == NULL) {
@@ -342,13 +336,6 @@ static int ipc_stream_position(uint32_t header)
 	trace_ipc("ipc: comp %d -> position", stream->comp_id);
 
 	memset(&posn, 0, sizeof(posn));
-
-	/* sanity check size */
-	if (IPC_INVALID_SIZE(stream)) {
-		trace_ipc_error("ipc:_invalid IPC size 0x%x got 0x%x",
-				sizeof(*stream), stream->hdr.size);
-		return -EINVAL;
-	}
 
 	/* get the pcm_dev */
 	pcm_dev = ipc_get_comp(_ipc, stream->comp_id);
@@ -409,13 +396,6 @@ static int ipc_stream_trigger(uint32_t header)
 	int ret;
 
 	trace_ipc("ipc: comp %d -> trigger cmd %d", stream->comp_id, ipc_cmd);
-
-	/* sanity check size */
-	if (IPC_INVALID_SIZE(stream)) {
-		trace_ipc_error("ipc:_invalid IPC size 0x%x got 0x%x",
-				sizeof(*stream), stream->hdr.size);
-		return -EINVAL;
-	}
 
 	/* get the pcm_dev */
 	pcm_dev = ipc_get_comp(_ipc, stream->comp_id);
@@ -648,14 +628,6 @@ static int ipc_dma_trace_config(uint32_t header)
 	struct sof_ipc_dma_trace_params *params = _ipc->comp_data;
 	int err;
 
-
-	/* sanity check size */
-	if (IPC_INVALID_SIZE(params)) {
-		trace_ipc_error("ipc:_invalid IPC size 0x%x got 0x%x",
-				sizeof(*params), params->hdr.size);
-		return -EINVAL;
-	}
-
 #ifdef CONFIG_HOST_PTABLE
 
 	dma_sg_init(&elem_array);
@@ -879,13 +851,6 @@ static int ipc_glb_tplg_pipe_new(uint32_t header)
 
 	trace_ipc("ipc: pipe %d -> new", ipc_pipeline->pipeline_id);
 
-	/* sanity check size */
-	if (IPC_INVALID_SIZE(ipc_pipeline)) {
-		trace_ipc_error("ipc:_invalid IPC size 0x%x got 0x%x",
-				sizeof(*ipc_pipeline), ipc_pipeline->hdr.size);
-		return -EINVAL;
-	}
-
 	ret = ipc_pipeline_new(_ipc, ipc_pipeline);
 	if (ret < 0) {
 		trace_ipc_error("ipc: pipe %d creation failed %d",
@@ -918,13 +883,6 @@ static int ipc_glb_tplg_comp_connect(uint32_t header)
 	trace_ipc("ipc: comp sink %d, source %d  -> connect",
 		  connect->sink_id, connect->source_id);
 
-	/* sanity check size */
-	if (IPC_INVALID_SIZE(connect)) {
-		trace_ipc_error("ipc:_invalid IPC size 0x%x got 0x%x",
-				sizeof(*connect), connect->hdr.size);
-		return -EINVAL;
-	}
-
 	return ipc_comp_connect(_ipc, connect);
 }
 
@@ -935,13 +893,6 @@ static int ipc_glb_tplg_free(uint32_t header,
 	int ret;
 
 	trace_ipc("ipc: comp %d -> free", ipc_free->id);
-
-	/* sanity check size */
-	if (IPC_INVALID_SIZE(ipc_free)) {
-		trace_ipc_error("ipc:_invalid IPC size 0x%x got 0x%x",
-				sizeof(*ipc_free), ipc_free->hdr.size);
-		return -EINVAL;
-	}
 
 	/* free the object */
 	ret = free_func(_ipc, ipc_free->id);
