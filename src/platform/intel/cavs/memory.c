@@ -31,6 +31,9 @@
 
 #include <sof/alloc.h>
 
+extern unsigned int _system_heap, _system_runtime_heap, _module_heap;
+extern unsigned int _buffer_heap;
+
 /* Heap blocks for system runtime for master core */
 static struct block_hdr sys_rt_0_block64[HEAP_SYS_RT_0_COUNT64];
 static struct block_hdr sys_rt_0_block512[HEAP_SYS_RT_0_COUNT512];
@@ -99,14 +102,14 @@ static struct block_map lp_buf_heap_map[] = {
 
 struct mm memmap = {
 	.system[0] = {
-		.heap = HEAP_SYSTEM_0_BASE,
+		.heap = (unsigned int)&_system_heap,
 		.size = HEAP_SYSTEM_0_SIZE,
 		.info = {.free = HEAP_SYSTEM_0_SIZE,},
 		.caps = SOF_MEM_CAPS_RAM | SOF_MEM_CAPS_EXT |
 			SOF_MEM_CAPS_CACHE,
 	},
 	.system[1] = {
-		.heap = HEAP_SYSTEM_1_BASE,
+		.heap = (unsigned int)&_system_heap + HEAP_SYSTEM_0_SIZE,
 		.size = HEAP_SYSTEM_1_SIZE,
 		.info = {.free = HEAP_SYSTEM_1_SIZE,},
 		.caps = SOF_MEM_CAPS_RAM | SOF_MEM_CAPS_EXT |
@@ -114,14 +117,16 @@ struct mm memmap = {
 	},
 #if defined(CONFIG_CANNONLAKE) || defined(CONFIG_ICELAKE)
 	.system[2] = {
-		.heap = HEAP_SYSTEM_2_BASE,
+		.heap = (unsigned int)&_system_heap + HEAP_SYSTEM_0_SIZE +
+			HEAP_SYSTEM_1_SIZE,
 		.size = HEAP_SYSTEM_2_SIZE,
 		.info = {.free = HEAP_SYSTEM_2_SIZE,},
 		.caps = SOF_MEM_CAPS_RAM | SOF_MEM_CAPS_EXT |
 			SOF_MEM_CAPS_CACHE,
 	},
 	.system[3] = {
-		.heap = HEAP_SYSTEM_3_BASE,
+		.heap = (unsigned int)&_system_heap + HEAP_SYSTEM_0_SIZE +
+			HEAP_SYSTEM_1_SIZE + HEAP_SYSTEM_2_SIZE,
 		.size = HEAP_SYSTEM_3_SIZE,
 		.info = {.free = HEAP_SYSTEM_3_SIZE,},
 		.caps = SOF_MEM_CAPS_RAM | SOF_MEM_CAPS_EXT |
@@ -131,7 +136,7 @@ struct mm memmap = {
 	.system_runtime[0] = {
 		.blocks = ARRAY_SIZE(sys_rt_0_heap_map),
 		.map = sys_rt_0_heap_map,
-		.heap = HEAP_SYS_RUNTIME_0_BASE,
+		.heap = (unsigned int)&_system_runtime_heap,
 		.size = HEAP_SYS_RUNTIME_0_SIZE,
 		.info = {.free = HEAP_SYS_RUNTIME_0_SIZE,},
 		.caps = SOF_MEM_CAPS_RAM | SOF_MEM_CAPS_EXT |
@@ -140,7 +145,7 @@ struct mm memmap = {
 	.system_runtime[1] = {
 		.blocks = ARRAY_SIZE(sys_rt_x_heap_map),
 		.map = sys_rt_x_heap_map,
-		.heap = HEAP_SYS_RUNTIME_1_BASE,
+		.heap = (unsigned int)&_system_runtime_heap + HEAP_SYS_RUNTIME_0_SIZE,
 		.size = HEAP_SYS_RUNTIME_1_SIZE,
 		.info = {.free = HEAP_SYS_RUNTIME_1_SIZE,},
 		.caps = SOF_MEM_CAPS_RAM | SOF_MEM_CAPS_EXT |
@@ -150,7 +155,8 @@ struct mm memmap = {
 	.system_runtime[2] = {
 		.blocks = ARRAY_SIZE(sys_rt_x_heap_map),
 		.map = sys_rt_x_heap_map,
-		.heap = HEAP_SYS_RUNTIME_2_BASE,
+		.heap = (unsigned int)&_system_runtime_heap +
+			HEAP_SYS_RUNTIME_0_SIZE + HEAP_SYS_RUNTIME_1_SIZE,
 		.size = HEAP_SYS_RUNTIME_2_SIZE,
 		.info = {.free = HEAP_SYS_RUNTIME_2_SIZE,},
 		.caps = SOF_MEM_CAPS_RAM | SOF_MEM_CAPS_EXT |
@@ -159,7 +165,9 @@ struct mm memmap = {
 	.system_runtime[3] = {
 		.blocks = ARRAY_SIZE(sys_rt_x_heap_map),
 		.map = sys_rt_x_heap_map,
-		.heap = HEAP_SYS_RUNTIME_3_BASE,
+		.heap = (unsigned int)&_system_runtime_heap +
+			HEAP_SYS_RUNTIME_0_SIZE + HEAP_SYS_RUNTIME_1_SIZE +
+			HEAP_SYS_RUNTIME_2_SIZE,
 		.size = HEAP_SYS_RUNTIME_3_SIZE,
 		.info = {.free = HEAP_SYS_RUNTIME_3_SIZE,},
 		.caps = SOF_MEM_CAPS_RAM | SOF_MEM_CAPS_EXT |
@@ -169,7 +177,7 @@ struct mm memmap = {
 	.runtime[0] = {
 		.blocks = ARRAY_SIZE(rt_heap_map),
 		.map = rt_heap_map,
-		.heap = HEAP_RUNTIME_BASE,
+		.heap = (unsigned int)&_module_heap,
 		.size = HEAP_RUNTIME_SIZE,
 		.info = {.free = HEAP_RUNTIME_SIZE,},
 		.caps = SOF_MEM_CAPS_RAM | SOF_MEM_CAPS_EXT |
@@ -178,7 +186,7 @@ struct mm memmap = {
 	.buffer[0] = {
 		.blocks = ARRAY_SIZE(buf_heap_map),
 		.map = buf_heap_map,
-		.heap = HEAP_BUFFER_BASE,
+		.heap = (unsigned int)&_buffer_heap,
 		.size = HEAP_BUFFER_SIZE,
 		.info = {.free = HEAP_BUFFER_SIZE,},
 		.caps = SOF_MEM_CAPS_RAM | SOF_MEM_CAPS_EXT |

@@ -841,8 +841,10 @@ void heap_trace_all(int force)
 /* initialise map */
 void init_heap(struct sof *sof)
 {
+	extern unsigned int _system_heap_start;
+
 	/* sanity check for malformed images or loader issues */
-	if (memmap.system[0].heap != HEAP_SYSTEM_0_BASE)
+	if (memmap.system[0].heap != (unsigned int)&_system_heap_start)
 		panic(SOF_IPC_PANIC_MEM);
 
 	spinlock_init(&memmap.lock);
