@@ -86,6 +86,9 @@ MEMORY
   vector_double_text :
         org = SOF_MEM_VECBASE + XCHAL_DOUBLEEXC_VECOFS,
         len = SOF_MEM_VECT_TEXT_SIZE
+  sof_fw_fixed :
+        org = SOF_FW_FIXED_BASE,
+        len = SOF_FW_FIXED_SIZE
   sof_fw :
         org = SOF_FW_BASE,
         len = SOF_FW_SIZE
@@ -135,6 +138,7 @@ PHDRS
   vector_user_text_phdr PT_LOAD;
   vector_double_lit_phdr PT_LOAD;
   vector_double_text_phdr PT_LOAD;
+  sof_fw_fixed_phdr PT_LOAD;
   sof_fw_phdr PT_LOAD;
   buffer_hp_heap_phdr PT_LOAD;
   wnd0_phdr PT_LOAD;
@@ -364,6 +368,34 @@ SECTIONS
     _DoubleExceptionVector_text_end = ABSOLUTE(.);
   } >vector_double_text :vector_double_text_phdr
 
+  .bss_fixed (NOLOAD) : ALIGN(4096)
+  {
+    _sof_stack_start = ABSOLUTE(.);
+    . = . + SOF_STACK_TOTAL_SIZE;
+    _sof_stack_end = ABSOLUTE(.);
+
+    . = ALIGN (32);
+    _system_heap_start = ABSOLUTE(.);
+    . = . + HEAP_SYSTEM_T_SIZE;
+    _system_heap_end = ABSOLUTE(.);
+
+    . = ALIGN (32);
+    _system_runtime_heap_start = ABSOLUTE(.);
+    . = . + HEAP_SYS_RUNTIME_T_SIZE;
+    _system_runtime_heap_end = ABSOLUTE(.);
+
+    . = ALIGN (32);
+    _runtime_heap_start = ABSOLUTE(.);
+    . = . + HEAP_RUNTIME_SIZE;
+    _runtime_heap_end = ABSOLUTE(.);
+
+    . = ALIGN (32);
+    _buffer_heap_start = ABSOLUTE(.);
+    . = . + HEAP_BUFFER_SIZE;
+    _buffer_heap_end = ABSOLUTE(.);
+
+  } >sof_fw_fixed :sof_fw_phdr
+
   .text : ALIGN(4)
   {
     _stext = .;
@@ -467,32 +499,6 @@ SECTIONS
     *(.bss.*)
     *(.gnu.linkonce.b.*)
     *(COMMON)
-
-    . = ALIGN (32);
-    _system_heap_start = ABSOLUTE(.);
-    . = . + HEAP_SYSTEM_T_SIZE;
-    _system_heap_end = ABSOLUTE(.);
-
-    . = ALIGN (32);
-    _system_runtime_heap_start = ABSOLUTE(.);
-    . = . + HEAP_SYS_RUNTIME_T_SIZE;
-    _system_runtime_heap_end = ABSOLUTE(.);
-
-    . = ALIGN (32);
-    _runtime_heap_start = ABSOLUTE(.);
-    . = . + HEAP_RUNTIME_SIZE;
-    _runtime_heap_end = ABSOLUTE(.);
-
-    . = ALIGN (32);
-    _buffer_heap_start = ABSOLUTE(.);
-    . = . + HEAP_BUFFER_SIZE;
-    _buffer_heap_end = ABSOLUTE(.);
-
-    . = ALIGN (4096);
-    _sof_stack_start = ABSOLUTE(.);
-    . = . + SOF_STACK_TOTAL_SIZE;
-    _sof_stack_end = ABSOLUTE(.);
-
     _bss_end = ABSOLUTE(.);
   } >sof_fw :sof_fw_phdr
 

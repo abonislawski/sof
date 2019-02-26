@@ -66,7 +66,7 @@ l2_cache_pref:
 #endif
 
 sof_stack_base:
-	.word __stack
+	.word SOF_STACK_BASE
 
 #if !defined CONFIG_SUECREEK
 wnd0_base:
