@@ -139,7 +139,7 @@ else()
 	)
 endif()
 
-add_local_sources(sof timer.c)
+add_local_sources(sof task.c timer.c)
 
 if(CONFIG_GDB_DEBUG)
 	add_subdirectory(gdb)
@@ -152,6 +152,7 @@ if(CONFIG_SMP)
 		smp/xtos/crt1-boards.S
 		smp/xtos/_vectors.S
 		smp/cpu.c
+		smp/idc.c
 		smp/init.c
 		smp/notifier.c
 		smp/schedule.c

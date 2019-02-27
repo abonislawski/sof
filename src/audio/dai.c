@@ -46,6 +46,8 @@
 #include <platform/dma.h>
 #include <arch/cache.h>
 
+#include <sof/drivers/timer.h>
+
 #define DAI_PTR_INIT_DAI	1	/* buffer ptr initialized by dai */
 #define DAI_PTR_INIT_HOST	2	/* buffer ptr initialized by host */
 
@@ -392,10 +394,17 @@ static int dai_params(struct comp_dev *dev)
 
 	trace_dai_with_ids(dev, "dai_params()");
 
+	/* check if already configured */
+	if (dev->state == COMP_STATE_PREPARE) {
+		trace_dai_with_ids(dev, "dai_params() component has been"
+				   "already configured.");
+		return 0;
+	}
+
 	/* can set params on only init state */
 	if (dev->state != COMP_STATE_READY) {
-		trace_dai_error_with_ids(dev, "dai_params() error: Component is"
-					 "not in init state.");
+		trace_dai_error_with_ids(dev, "dai_params() error: Component"
+					 " is not in init state.");
 		return -EINVAL;
 	}
 
