@@ -126,7 +126,6 @@ static void parse_manifest(void)
 
 	/* copy module to SRAM  - skip bootloader module */
 	for (i = MAN_SKIP_ENTRIES; i < hdr->num_module_entries; i++) {
-
 		platform_trace_point(TRACE_BOOT_LDR_PARSE_MODULE + i);
 		mod = sof_man_get_module(desc, i);
 		parse_module(hdr, mod);
@@ -135,7 +134,7 @@ static void parse_manifest(void)
 #endif
 
 /* power off unused HPSRAM */
-#if defined(CONFIG_CANNONLAKE)
+#if defined(CONFIG_CANNONLAKE_OFF)
 
 static int32_t hp_sram_init(void)
 {
@@ -212,7 +211,7 @@ static int32_t hp_sram_init(void)
 
 #else
 
-static uint32_t hp_sram_init(void)
+static inline uint32_t hp_sram_init(void)
 {
 	return 0;
 }
@@ -252,6 +251,11 @@ static int32_t lp_sram_init(void)
 void boot_master_core(void)
 {
 	int32_t result;
+
+	/*mailbox_sw_reg_write(0x20, io_reg_read(HSPGCTL0));
+	mailbox_sw_reg_write(0x24, io_reg_read(HSRMCTL0));
+	mailbox_sw_reg_write(0x28, io_reg_read(HSPGCTL1));
+	mailbox_sw_reg_write(0x2C, io_reg_read(HSRMCTL1));*/
 
 	/* TODO: platform trace should write to HW IPC regs on CNL */
 	platform_trace_point(TRACE_BOOT_LDR_ENTRY);

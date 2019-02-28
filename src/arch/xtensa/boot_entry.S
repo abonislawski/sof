@@ -163,15 +163,13 @@ boot_init:
 
 	l32r	a5, hspgctl1_address
 	s32i	a3, a5, 0
+	memw
 
 	l32r	a5, hsrmctl1_address
 	s32i	a3, a5, 0
 	memw
 
-	l32r	a3, ldoctl_hpsram_ldo_bypass
-	l32r	a5, shim_ldoctl_address
-	s32i	a3, a5, 0
-	memw
+
 
 	/* wait for status of first bank group */
 	l32r	a5, hspgists0_address
@@ -189,6 +187,11 @@ boot_init:
 	movi	a2, 256
 4:	addi.n	a2, a2, -1
 	bnez	a2, 4b
+
+	l32r	a3, ldoctl_hpsram_ldo_bypass
+	l32r	a5, shim_ldoctl_address
+	s32i	a3, a5, 0
+	memw
 #endif
 
 	/* reprogram stack to the area defined by main FW */
