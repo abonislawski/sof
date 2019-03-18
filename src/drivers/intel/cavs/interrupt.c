@@ -39,7 +39,7 @@
 #include <sof/cavs-version.h>
 #include <arch/interrupt.h>
 #include <platform/interrupt.h>
-#include <platform/platcfg.h>
+#include <platform/platform.h>
 #include <platform/shim.h>
 #include <stdint.h>
 #include <stdlib.h>
