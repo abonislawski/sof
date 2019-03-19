@@ -33,7 +33,7 @@
 #define __INCLUDE_ARCH_CPU__
 
 #include <xtensa/config/core.h>
-#include <platform/platcfg.h>
+#include <platform/platform.h>
 
 void arch_cpu_enable_core(int id);
 
