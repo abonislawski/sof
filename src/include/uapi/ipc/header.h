@@ -239,6 +239,7 @@ struct sof_ipc_dsp_oops_plat_hdr {
 	uint32_t stackoffset;	/* Offset to stack pointer from beginning of
 				 * oops message
 				 */
+	uintptr_t stack_ptr;	/* Stack ptr */
 } __attribute__((packed));
 
 /** @}*/
