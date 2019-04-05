@@ -71,13 +71,14 @@ void panic_rewind(uint32_t p, uint32_t stack_rewind_frames,
 
 	count = MAILBOX_EXCEPTION_SIZE -
 		(size_t)(ext_offset - mailbox_get_exception_base());
-	/* dump stack frames */
-	p = dump_stack(p, ext_offset, stack_rewind_frames, count, &stack_ptr);
 
 	/* flush last trace messages */
 #if CONFIG_TRACE
 	trace_flush();
 #endif
+
+	/* dump stack frames */
+	p = dump_stack(p, ext_offset, stack_rewind_frames, count, &stack_ptr);
 
 	/* dump DSP core registers
 	 * after arch_dump_regs() use only inline funcs if needed
