@@ -65,7 +65,8 @@ int do_task_master_core(struct sof *sof)
 	ret = platform_boot_complete(0);
 	if (ret < 0)
 		return ret;
-
+	*((volatile uint32_t*)(MAILBOX_SW_REG_BASE - 0x20000000 + 0x1c)) = 0x99;
+	rzalloc(RZONE_SYS, SOF_MEM_CAPS_RAM, 1);
 	/* main audio IPC processing loop */
 	while (1) {
 		/* sleep until next IPC or DMA */

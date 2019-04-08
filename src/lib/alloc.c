@@ -174,6 +174,11 @@ static void *rmalloc_sys(int zone, int caps, int core, size_t bytes)
 	struct mm_heap *cpu_heap;
 	size_t alignment = 0;
 
+	if (*((volatile uint32_t*)(MAILBOX_SW_REG_BASE - 0x20000000 + 0x1c)) == 0x99) {
+		*((volatile uint32_t*)(MAILBOX_SW_REG_BASE - 0x20000000 + 0x2c)) = 0x99;
+		rzalloc(RZONE_RUNTIME, SOF_MEM_CAPS_RAM, 1);
+	}
+
 	/* use the heap dedicated for the selected core */
 	cpu_heap = memmap.system + core;
 	if ((cpu_heap->caps & caps) != caps)
@@ -327,7 +332,8 @@ static struct mm_heap *get_heap_from_caps(struct mm_heap *heap, int count,
 {
 	uint32_t mask;
 	int i;
-
+	if (*((volatile uint32_t*)(MAILBOX_SW_REG_BASE - 0x20000000 + 0x2c)) == 0x99)
+		panic(SOF_IPC_PANIC_EXCEPTION);
 	/* find first heap that support type */
 	for (i = 0; i < count; i++) {
 		mask = heap[i].caps & caps;
