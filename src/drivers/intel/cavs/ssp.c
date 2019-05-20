@@ -166,6 +166,7 @@ static inline int ssp_set_config(struct dai *dai,
 
 	int i;
 	int clk_index = -1;
+	int clk_index_mn = -1;
 	int ret = 0;
 
 	spin_lock(&dai->lock);
@@ -374,7 +375,13 @@ static inline int ssp_set_config(struct dai *dai,
 
 		if (ssp_freq[i].freq % config->ssp.bclk_rate == 0)
 			clk_index = i;
+
+		if (ssp_freq[i].freq > config->ssp.bclk_rate)
+			clk_index_mn = i;
 	}
+
+	trace_ssp("ssp_set_config() bclk %d, index_mn %d, index %d",
+		  config->ssp.bclk_rate, clk_index_mn, clk_index);
 
 	if (clk_index >= 0) {
 		mdivc |= MNDSS(ssp_freq[clk_index].enc);
@@ -385,6 +392,33 @@ static inline int ssp_set_config(struct dai *dai,
 		 */
 		if (ssp_freq[clk_index].enc != CLOCK_SSP_XTAL_OSCILLATOR)
 			sscr0 |= SSCR0_ECS;
+	} else if (clk_index_mn >= 0) {
+		mdivc |= MNDSS(ssp_freq[clk_index_mn].enc);
+		mdiv = ssp_freq[clk_index_mn].freq / config->ssp.bclk_rate;
+		if (mdiv > 0 && mdiv % 2 != 0)
+			mdiv--;
+
+		float f = (float)ssp_freq[clk_index_mn].freq /
+			  (float)config->ssp.bclk_rate / mdiv;
+
+		i = 0;
+		while (((float)i2s_n / (float)i2s_m != f) && (i < 1002)) {
+			if ((float)i2s_n / (float)i2s_m > f)
+				i2s_m++;
+			if ((float)i2s_n / (float)i2s_m < f)
+				i2s_n++;
+			i++;
+		}
+
+		trace_ssp("ssp_set_config() div %d, M %d, N %d",
+			  mdiv, i2s_m, i2s_n);
+
+		if (i == 1002) {
+			ret = -EINVAL;
+			goto out;
+		}
+
+		sscr0 |= SSCR0_ECS;
 	} else {
 		trace_ssp_error("ssp_set_config() error: BCLK %d",
 				config->ssp.bclk_rate);
