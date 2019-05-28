@@ -152,17 +152,12 @@
 	(HEAP_SYS_RUNTIME_M_SIZE + ((PLATFORM_CORE_COUNT - 1) * \
 	HEAP_SYS_RUNTIME_S_SIZE))
 
-#define HEAP_RUNTIME_BASE \
-	(HEAP_SYS_RUNTIME_0_BASE + HEAP_SYS_RUNTIME_M_SIZE + \
-	((PLATFORM_CORE_COUNT - 1) * HEAP_SYS_RUNTIME_S_SIZE))
-
 #define HEAP_RUNTIME_SIZE \
 	(HEAP_RT_COUNT64 * 64 + HEAP_RT_COUNT128 * 128 + \
 	HEAP_RT_COUNT256 * 256 + HEAP_RT_COUNT512 * 512 + \
 	HEAP_RT_COUNT1024 * 1024)
 
-#define HEAP_BUFFER_BASE	(HEAP_RUNTIME_BASE + HEAP_RUNTIME_SIZE)
-#define HEAP_BUFFER_SIZE	(SOF_STACK_END - HEAP_BUFFER_BASE)
+#define HEAP_BUFFER_SIZE	0x2000
 #define HEAP_BUFFER_BLOCK_SIZE	0x180
 #define HEAP_BUFFER_COUNT	(HEAP_BUFFER_SIZE / HEAP_BUFFER_BLOCK_SIZE)
 
@@ -268,9 +263,6 @@
 #define SOF_FW_START		(HP_SRAM_VECBASE_RESET + 0x400)
 #define SOF_FW_BASE		(SOF_FW_START)
 
-/* max size for all var-size sections (text/rodata/bss) */
-#define SOF_FW_MAX_SIZE		(0x41000 - 0x400)
-
 /* Skylake or kabylake HP-SRAM config */
 #elif defined(CONFIG_KABYLAKE) || defined(CONFIG_SKYLAKE)
 
@@ -286,12 +278,12 @@
 #define SOF_FW_START		HP_SRAM_VECBASE_RESET
 #define SOF_FW_BASE		(SOF_FW_START + 0x1000)
 
-/* max size for all var-size sections (text/rodata/bss) */
-#define SOF_FW_MAX_SIZE		0x40000
-
 #else
 #error Platform not specified
 #endif
+
+/* max size for all var-size sections (text/rodata/bss) */
+#define SOF_FW_MAX_SIZE		(HP_SRAM_BASE + HP_SRAM_SIZE - SOF_FW_BASE)
 
 #define SOF_TEXT_START		(SOF_FW_START)
 #define SOF_TEXT_BASE		(SOF_FW_START)
@@ -299,10 +291,12 @@
 /* Stack configuration */
 #define SOF_STACK_SIZE		ARCH_STACK_SIZE
 #define SOF_STACK_TOTAL_SIZE	ARCH_STACK_TOTAL_SIZE
-#define SOF_STACK_BASE		(HP_SRAM_BASE + HP_SRAM_SIZE)
-#define SOF_STACK_END		(SOF_STACK_BASE - SOF_STACK_TOTAL_SIZE)
 
-#define SOF_MEMORY_SIZE		(SOF_STACK_BASE - HP_SRAM_BASE)
+/* SOF Core S configuration */
+#define SOF_CORE_S_SIZE \
+	ALIGN((HEAP_SYSTEM_S_SIZE + HEAP_SYS_RUNTIME_S_SIZE + SOF_STACK_SIZE),\
+		SRAM_BANK_SIZE)
+#define SOF_CORE_S_T_SIZE ((PLATFORM_CORE_COUNT - 1) * SOF_CORE_S_SIZE)
 
 /*
  * The LP SRAM Heap and Stack on Apollolake are organised like this :-
@@ -413,6 +407,10 @@
 #define IMR_BOOT_LDR_DATA_SIZE		0x1000
 #define IMR_BOOT_LDR_BSS_BASE		0xB0100000
 #define IMR_BOOT_LDR_BSS_SIZE		0x10000
+
+/* Temporary stack place for boot_ldr */
+#define BOOT_LDR_STACK_BASE		HEAP_HP_BUFFER_BASE
+#define BOOT_LDR_STACK_SIZE		SOF_STACK_TOTAL_SIZE
 
 /** \brief Manifest base address in IMR - used by boot loader copy procedure. */
 #define IMR_BOOT_LDR_MANIFEST_BASE	0xB0004000
