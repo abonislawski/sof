@@ -324,7 +324,6 @@ static struct comp_dev *host_new(struct sof_ipc_comp *comp)
 	struct sof_ipc_comp_host *host;
 	struct sof_ipc_comp_host *ipc_host = (struct sof_ipc_comp_host *)comp;
 	uint32_t dir, caps, dma_dev;
-	int err = 0;
 
 
 	trace_host("host_new()");
@@ -370,15 +369,16 @@ static struct comp_dev *host_new(struct sof_ipc_comp *comp)
 #if CONFIG_DMA_GW
 	dma_sg_init(&hd->config.elem_array);
 #else
+	int err = 0;
+
 	dma_sg_init(&hd->host.elem_array);
 	dma_sg_init(&hd->local.elem_array);
 
 	err = dma_sg_alloc(&hd->config.elem_array, RZONE_RUNTIME,
 			   dir, 1, 0, 0, 0);
-#endif
 	if (err < 0)
 		goto error;
-
+#endif
 
 	hd->chan = DMA_CHAN_INVALID;
 	hd->copy_blocking = 0;
