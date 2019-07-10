@@ -43,11 +43,9 @@ STATIC_ASSERT(MUX_MAX_STREAMS < PLATFORM_MAX_STREAMS,
 	      unsupported_amount_of_streams_for_mux);
 
 struct mux_stream_data {
-	uint32_t pipeline_id;
+	uint32_t pipeline_id;				//ext_id
 	uint8_t num_channels;
-	uint8_t mask[PLATFORM_MAX_CHANNELS];
-
-	uint8_t reserved[(20 - PLATFORM_MAX_CHANNELS - 1) % 4]; // padding to ensure proper alignment of following instances
+	uint8_t mask[PLATFORM_MAX_CHANNELS];		//ch_mask
 };
 
 typedef void(*demux_func)(struct comp_dev *dev, struct comp_buffer *sink,
@@ -63,8 +61,16 @@ struct sof_mux_config {
 	uint16_t num_streams;
 
 	uint16_t reserved; // padding to ensure proper alignment
-
 	struct mux_stream_data streams[];
+};
+
+struct sof_ipc_mux_config {
+	uint16_t frame_format;
+	uint16_t num_channels;
+	uint16_t num_streams;
+
+	uint16_t reserved; // padding to ensure proper alignment
+	struct mux_stream_data streams[MUX_MAX_STREAMS];
 };
 
 struct comp_data {
@@ -73,7 +79,7 @@ struct comp_data {
 		demux_func demux;
 	};
 
-	struct sof_mux_config config;
+	struct sof_ipc_mux_config config;
 };
 
 struct comp_func_map {
