@@ -52,6 +52,62 @@ struct sof_ipc_dma_trace_posn {
 } __attribute__((packed));
 
 /*
+ * Probes
+ */
+
+struct ProbeDataPacket {
+	uint32_t sync_word;
+	uint32_t buffer_id;
+	uint32_t format;
+	uint32_t timestamp_low;
+	uint32_t timestamp_high;
+	uint64_t checksum;
+	uint32_t data_size_bytes;
+	uint32_t data[];
+} __attribute__((packed));
+
+struct probe_dma {
+	uint32_t stream_tag;
+	uint32_t dma_buffer_size;
+} __attribute__((packed));
+
+struct probe_point {
+	uint32_t buffer_id;
+	uint32_t purpose;
+	uint32_t stream_tag;
+} __attribute__((packed));
+
+/* DMA for extraction probes */
+struct sof_ipc_extract_probe_dma_params {
+	struct sof_ipc_cmd_hdr hdr;
+	struct probe_dma probe_extract_dma;
+} __attribute__((packed));
+
+/* Connect probe point */
+struct sof_ipc_connect_probe_params {
+	struct sof_ipc_cmd_hdr hdr;
+	struct probe_point probe_points[];
+} __attribute__((packed));
+
+/* DMA list for injection */
+struct sof_ipc_dma_list_probe_params {
+	struct sof_ipc_cmd_hdr hdr;
+	struct probe_dma probe_dma[];
+} __attribute__((packed));
+
+/* DMA detach list for injection */
+struct sof_ipc_dma_detach_list_probe_params {
+	struct sof_ipc_cmd_hdr hdr;
+	uint32_t stream_tag[];
+} __attribute__((packed));
+
+/* Disconnect probe */
+struct sof_ipc_disconnect_probe_params {
+	struct sof_ipc_cmd_hdr hdr;
+	uint32_t buffer_id[];
+} __attribute__((packed));
+
+/*
  * Commom debug
  */
 

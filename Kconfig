@@ -182,4 +182,10 @@ config DEBUG_IPC_COUNTERS
 	help
 	  Select for enabling tracing IPC counter in SRAM_REG mailbox
 
+config PROBES
+	bool "Probes"
+	default n
+	help
+	  Select for enabling debug probes to extract/inject buffers
+
 endmenu

@@ -797,6 +797,27 @@ static int ipc_glb_gdb_debug(uint32_t header)
 
 }
 
+#if CONFIG_PROBES
+static int ipc_glb_probe(uint32_t header)
+{
+	uint32_t cmd = iCS(header);
+
+	trace_ipc("ipc: probe cmd 0x%x", cmd);
+
+	switch (cmd) {
+	case SOF_IPC_EXTRACTION_PROBE_DMA:
+	case SOF_IPC_INJECTION_PROBE_DMA:
+	case SOF_IPC_INJECTION_PROBE_DMA_DETACH:
+	case SOF_IPC_PROBE_CONNECT:
+	case SOF_IPC_PROBE_DISCONNECT:
+		return 0;
+	default:
+		trace_ipc_error("ipc: unknown probe cmd 0x%x", cmd);
+		return -EINVAL;
+	}
+}
+#endif
+
 /*
  * Topology IPC Operations.
  */
@@ -1111,6 +1132,11 @@ void ipc_cmd(struct sof_ipc_cmd_hdr *hdr)
 	case SOF_IPC_GLB_GDB_DEBUG:
 		ret = ipc_glb_gdb_debug(hdr->cmd);
 		break;
+#if CONFIG_PROBES
+	case SOF_IPC_GLB_PROBE:
+		ret = ipc_glb_probe(hdr->cmd);
+		break;
+#endif
 #if CONFIG_DEBUG
 	case SOF_IPC_GLB_TEST:
 		ret = ipc_glb_test_message(hdr->cmd);
