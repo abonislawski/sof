@@ -47,6 +47,8 @@
 #include <ipc/topology.h>
 #include <ipc/trace.h>
 #include <user/trace.h>
+#include <ipc/probe.h>
+#include <sof/probe/probe.h>
 #include <config.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -800,6 +802,153 @@ static int ipc_glb_gdb_debug(uint32_t header)
 
 }
 
+#if CONFIG_PROBE
+static inline int ipc_probe_init(uint32_t header)
+{
+	struct sof_ipc_probe_dma_set_params *params = _ipc->comp_data;
+	int dma_set_up = (params->hdr.size - sizeof(*params)) /
+			 sizeof(struct probe_dma);
+
+	trace_ipc("ipc_probe_init()");
+
+	return probe_init(dma_set_up ? params->probe_dma : NULL);
+}
+
+static inline int ipc_probe_deinit(uint32_t header)
+{
+	trace_ipc("ipc_probe_deinit()");
+
+	return probe_deinit();
+}
+
+static inline int ipc_probe_dma_set(uint32_t header)
+{
+	struct sof_ipc_probe_dma_set_params *params = _ipc->comp_data;
+	uint32_t dmas_count = (params->hdr.size - sizeof(*params)) /
+			      sizeof(struct probe_dma);
+
+	trace_ipc("ipc_probe_dma_set()");
+
+	return probe_dma_set(dmas_count, params->probe_dma);
+}
+
+static inline int ipc_probe_dma_detach(uint32_t header)
+{
+	struct sof_ipc_probe_dma_detach_params *params = _ipc->comp_data;
+	uint32_t tags_count = (params->hdr.size - sizeof(*params)) /
+			      sizeof(uint32_t);
+
+	trace_ipc("ipc_probe_dma_detach()");
+
+	return probe_dma_detach(tags_count, params->stream_tag);
+}
+
+static inline int ipc_probe_point_set(uint32_t header)
+{
+	struct sof_ipc_probe_point_set_params *params = _ipc->comp_data;
+	uint32_t probes_count = (params->hdr.size - sizeof(*params)) /
+				sizeof(struct probe_point);
+
+	trace_ipc("ipc_probe_point_set()");
+
+	return probe_point_set(probes_count, params->probe_point);
+}
+
+static inline int ipc_probe_point_remove(uint32_t header)
+{
+	struct sof_ipc_probe_point_remove_params *params = _ipc->comp_data;
+	uint32_t probes_count = (params->hdr.size - sizeof(*params)) /
+				sizeof(uint32_t);
+
+	trace_ipc("ipc_probe_point_remove()");
+
+	return probe_point_remove(probes_count, params->buffer_id);
+}
+
+static int ipc_probe_get_data(uint32_t header)
+{
+	uint32_t cmd = iCS(header);
+	struct sof_ipc_probe_get_params *params = _ipc->comp_data;
+	int ret;
+
+	trace_ipc("ipc_probe_get_data()");
+
+	switch (cmd) {
+	case SOF_IPC_PROBE_DMA_GET:
+		ret = probe_dma_get(params, SOF_IPC_MSG_MAX_SIZE);
+		break;
+	case SOF_IPC_PROBE_POINT_GET:
+		ret = probe_point_get(params, SOF_IPC_MSG_MAX_SIZE);
+		break;
+	default:
+		trace_ipc_error("ipc_probe_get_data() error: Invalid probe GET "
+				"command = %u", cmd);
+		ret = -EINVAL;
+	}
+
+	if (ret < 0) {
+		trace_ipc_error("ipc_probe_get_data() error: cmd %u failed",
+				cmd);
+		return ret;
+	}
+
+	/* write data to the outbox */
+	if (params->rhdr.hdr.size <= MAILBOX_HOSTBOX_SIZE &&
+		params->rhdr.hdr.size <= SOF_IPC_MSG_MAX_SIZE) {
+		mailbox_hostbox_write(0, params, params->rhdr.hdr.size);
+		ret = 1;
+	} else {
+		trace_ipc_error("ipc_probe_get_data() error: probes module "
+				"returned too much payload for cmd %u - "
+				"returned %d bytes, max %d", cmd,
+				params->rhdr.hdr.size,
+				MIN(MAILBOX_HOSTBOX_SIZE,
+				    SOF_IPC_MSG_MAX_SIZE));
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
+
+static int ipc_glb_probe(uint32_t header)
+{
+	uint32_t cmd = iCS(header);
+
+	trace_ipc("ipc: probe cmd 0x%x", cmd);
+
+	switch (cmd) {
+	case SOF_IPC_PROBE_INIT:
+		return ipc_probe_init(header);
+	case SOF_IPC_PROBE_DEINIT:
+		return ipc_probe_deinit(header);
+	case SOF_IPC_PROBE_DMA_SET:
+		return ipc_probe_dma_set(header);
+	case SOF_IPC_PROBE_DMA_DETACH:
+		return ipc_probe_dma_detach(header);
+	case SOF_IPC_PROBE_POINT_SET:
+		return ipc_probe_point_set(header);
+	case SOF_IPC_PROBE_POINT_REMOVE:
+		return ipc_probe_point_remove(header);
+	case SOF_IPC_PROBE_DMA_GET:
+	case SOF_IPC_PROBE_POINT_GET:
+		return ipc_probe_get_data(header);
+	default:
+		trace_ipc_error("ipc: unknown probe cmd 0x%x", cmd);
+		return -EINVAL;
+	}
+}
+#else
+static inline int ipc_glb_probe(uint32_t header)
+{
+	/* Probes are not enabled by config */
+
+	trace_ipc_error("ipc_glb_probe() error: Probes not enabled by "
+			"Kconfig.");
+
+	return -EINVAL;
+}
+#endif
+
 /*
  * Topology IPC Operations.
  */
@@ -1113,6 +1262,9 @@ void ipc_cmd(struct sof_ipc_cmd_hdr *hdr)
 		break;
 	case SOF_IPC_GLB_GDB_DEBUG:
 		ret = ipc_glb_gdb_debug(hdr->cmd);
+		break;
+	case SOF_IPC_GLB_PROBE:
+		ret = ipc_glb_probe(hdr->cmd);
 		break;
 #if CONFIG_DEBUG
 	case SOF_IPC_GLB_TEST:

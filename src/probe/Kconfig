@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: BSD-3-Clause
+
+# Probe configs
+
+menu "Probe"
+
+config PROBE
+	bool "Probes enabled"
+	default n
+	help
+	  Select for enabling debug probes to extract/inject buffers
+
+endmenu

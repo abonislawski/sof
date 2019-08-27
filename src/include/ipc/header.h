@@ -71,6 +71,7 @@
 #define SOF_IPC_GLB_TRACE_MSG			SOF_GLB_TYPE(0x9U)
 #define SOF_IPC_GLB_GDB_DEBUG                   SOF_GLB_TYPE(0xAU)
 #define SOF_IPC_GLB_TEST			SOF_GLB_TYPE(0xBU)
+#define SOF_IPC_GLB_PROBE			SOF_GLB_TYPE(0xCU)
 
 /** @} */
 
@@ -150,6 +151,21 @@
 #define SOF_IPC_TRACE_DMA_PARAMS_EXT		SOF_CMD_TYPE(0x003)
 
 /** @} */
+
+/** \name DSP Command: Probes
+ *  @{
+ */
+
+#define SOF_IPC_PROBE_INIT			SOF_CMD_TYPE(0x001)
+#define SOF_IPC_PROBE_DEINIT			SOF_CMD_TYPE(0x002)
+#define SOF_IPC_PROBE_DMA_SET			SOF_CMD_TYPE(0x003)
+#define SOF_IPC_PROBE_DMA_GET			SOF_CMD_TYPE(0x004)
+#define SOF_IPC_PROBE_DMA_DETACH		SOF_CMD_TYPE(0x005)
+#define SOF_IPC_PROBE_POINT_SET			SOF_CMD_TYPE(0x006)
+#define SOF_IPC_PROBE_POINT_GET			SOF_CMD_TYPE(0x007)
+#define SOF_IPC_PROBE_POINT_REMOVE		SOF_CMD_TYPE(0x008)
+
+ /** @} */
 
 /** \name DSP Command: Test - Debug build only
  *  @{

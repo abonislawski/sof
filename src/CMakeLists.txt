@@ -22,3 +22,7 @@ add_subdirectory(schedule)
 if (CONFIG_TRACE)
 	add_subdirectory(trace)
 endif()
+
+if (CONFIG_PROBE)
+	add_subdirectory(probe)
+endif()
