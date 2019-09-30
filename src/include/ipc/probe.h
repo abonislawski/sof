@@ -19,6 +19,9 @@
 #include <ipc/header.h>
 #include <stdint.h>
 
+#define PROBE_PURPOSE_EXTRACTION	0x1
+#define PROBE_PURPOSE_INJECTION		0x2
+
 /* Header for data packets sent via compressed PCM from extraction probes */
 struct probe_data_packet {
 	uint32_t sync_word;

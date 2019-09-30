@@ -8,6 +8,10 @@
 #ifndef __SOF_PROBE_PROBE_H__
 #define __SOF_PROBE_PROBE_H__
 
+#include <config.h>
+
+#if CONFIG_PROBE
+
 #include <ipc/probe.h>
 
 /*
@@ -76,5 +80,7 @@ int probe_point_get(struct sof_ipc_probe_get_params *data, uint32_t max_size);
  *			 probes were attached
  */
 int probe_point_remove(uint32_t count, uint32_t *buffer_id);
+
+#endif /* CONFIG_PROBE */
 
 #endif /* __SOF_PROBE_PROBE_H__ */
