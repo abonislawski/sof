@@ -16,11 +16,14 @@
 #ifndef __IPC_PROBE_H__
 #define __IPC_PROBE_H__
 
+#include <sof/lib/dma.h>
 #include <ipc/header.h>
 #include <stdint.h>
 
 #define PROBE_PURPOSE_EXTRACTION	0x1
 #define PROBE_PURPOSE_INJECTION		0x2
+
+#define PROBE_BUFFER_LOCAL_SIZE		8192
 
 /* Header for data packets sent via compressed PCM from extraction probes */
 struct probe_data_packet {
@@ -37,6 +40,23 @@ struct probe_data_packet {
 struct probe_dma {
 	uint32_t stream_tag;
 	uint32_t dma_buffer_size;
+} __attribute__((packed));
+
+struct dma_probe_buf {
+	void *w_ptr;
+	void *r_ptr;
+	void *addr;
+	void *end_addr;
+	uint32_t size;
+	uint32_t avail;
+};
+
+struct probe_dma_ext {
+	uint32_t stream_tag;
+	uint32_t dma_buffer_size;
+	struct dma_sg_config config;
+	struct dma_probe_buf dmapb;
+	struct dma_copy dc;
 } __attribute__((packed));
 
 struct probe_point {

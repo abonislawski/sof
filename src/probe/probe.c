@@ -25,16 +25,112 @@
 #define PROBE_POINT_INVALID	0xFFFFFFFF
 
 struct probe_pdata {
-	struct probe_dma ext_dma;
-	struct probe_dma inject_dma[CONFIG_PROBE_DMA_MAX];
+	struct probe_dma_ext ext_dma;
+	struct probe_dma_ext inject_dma[CONFIG_PROBE_DMA_MAX];
 	struct probe_point probe_points[CONFIG_PROBE_POINTS_MAX];
 };
 
 static struct probe_pdata *_probe;
 
+static int dma_probe_buffer_init(struct dma_probe_buf *buffer, uint32_t size)
+{
+	/* allocate new buffer */
+	buffer->addr = rballoc(RZONE_BUFFER,
+		SOF_MEM_CAPS_RAM | SOF_MEM_CAPS_DMA,
+		size);
+
+	if (!buffer->addr) {
+		trace_probe_error("dma_probe_buffer_init() error: "
+				  "alloc failed");
+		return -ENOMEM;
+	}
+
+	bzero(buffer->addr, size);
+	dcache_writeback_region(buffer->addr, size);
+
+	/* initialise the DMA buffer */
+	buffer->size = size;
+	buffer->w_ptr = buffer->addr;
+	buffer->r_ptr = buffer->addr;
+	buffer->end_addr = buffer->addr + buffer->size;
+	buffer->avail = 0;
+
+	return 0;
+}
+
+static int dma_probe_init(struct probe_dma_ext *dma)
+{
+	struct dma_sg_config config;
+	uint32_t elem_size, elem_addr, elem_num;
+	int err = 0;
+
+	/* initialize dma buffer */
+	err = dma_probe_buffer_init(&dma->dmapb, PROBE_BUFFER_LOCAL_SIZE);
+	if (err < 0)
+		return err;
+
+	/* request HDA DMA in the dir LMEM->HMEM with shared access */
+	dma->dc.dmac = dma_get(DMA_DIR_LMEM_TO_HMEM, 0, DMA_DEV_HOST,
+				DMA_ACCESS_SHARED);
+	if (dma->dc.dmac == NULL) {
+		trace_probe_error("dma_probe_init() error: "
+				  "dma->dc.dmac = NULL");
+		return -ENODEV;
+	}
+
+	err = dma_copy_set_stream_tag(&dma->dc, dma->stream_tag);
+	if (err < 0)
+		return err;
+
+	elem_size = sizeof(uint64_t) * 32;
+	elem_addr = (uint32_t)dma->dmapb.addr;
+	elem_num = PROBE_BUFFER_LOCAL_SIZE / elem_size;
+
+	config.direction = DMA_DIR_LMEM_TO_HMEM;
+	config.src_width = sizeof(uint32_t);
+	config.dest_width = sizeof(uint32_t);
+	config.cyclic = 0;
+
+	err = dma_sg_alloc(&config.elem_array, RZONE_RUNTIME, config.direction,
+				elem_num, elem_size, elem_addr, 0);
+	if (err < 0)
+		return err;
+
+	err = dma_set_config(dma->dc.chan, &config);
+	if (err < 0)
+		return err;
+
+	dma_sg_free(&config.elem_array);
+
+	err = dma_start(dma->dc.chan);
+	if (err < 0)
+		return err;
+
+	return 0;
+}
+
+static int dma_probe_deinit(struct probe_dma_ext *dma)
+{
+	int err = 0;
+
+	err = dma_stop(dma->dc.chan);
+	if (err < 0)
+		return err;
+
+	dma_channel_put(dma->dc.chan);
+
+	rfree(dma->dmapb.addr);
+	dma->dmapb.addr = NULL;
+
+	dma->stream_tag = PROBE_DMA_INVALID;
+
+	return 0;
+}
+
 int probe_init(struct probe_dma *probe_dma)
 {
 	uint32_t i;
+	int err;
 
 	trace_probe("probe_init()");
 
@@ -57,13 +153,15 @@ int probe_init(struct probe_dma *probe_dma)
 
 		_probe->ext_dma.stream_tag = probe_dma->stream_tag;
 		_probe->ext_dma.dma_buffer_size = probe_dma->dma_buffer_size;
+
+		err = dma_probe_init(&_probe->ext_dma);
+		if (err < 0)
+			return err;
 	} else {
 		trace_probe("\tno extraction DMA setup");
 
 		_probe->ext_dma.stream_tag = PROBE_DMA_INVALID;
 	}
-
-	/* TODO: Take ownership of Host DMA specified by ext_dma.stream_tag */
 
 	/* initialize injection DMAs as invalid */
 	for (i = 0; i < CONFIG_PROBE_DMA_MAX; i++)
@@ -79,6 +177,7 @@ int probe_init(struct probe_dma *probe_dma)
 int probe_deinit(void)
 {
 	uint32_t i;
+	int err;
 
 	trace_probe("probe_deinit()");
 
@@ -109,9 +208,11 @@ int probe_deinit(void)
 	}
 
 	if (_probe->ext_dma.stream_tag != PROBE_DMA_INVALID) {
-		/* TODO: Release extraction DMA */
-
 		trace_probe("probe_deinit() Freeing extraction DMA.");
+
+		err = dma_probe_deinit(&_probe->ext_dma);
+		if (err < 0)
+			return err;
 	}
 
 	rfree(_probe);
@@ -126,6 +227,7 @@ int probe_dma_set(uint32_t count, struct probe_dma *probe_dma)
 	uint32_t j;
 	uint32_t stream_tag;
 	uint32_t first_free;
+	int err;
 
 	trace_probe("probe_dma_set() count = %u", count);
 
@@ -169,7 +271,9 @@ int probe_dma_set(uint32_t count, struct probe_dma *probe_dma)
 		_probe->inject_dma[first_free].dma_buffer_size =
 			probe_dma[i].dma_buffer_size;
 
-		/* TODO: Take ownership of the DMA */
+		err = dma_probe_init(&_probe->inject_dma[first_free]);
+		if (err < 0)
+			return err;
 	}
 
 	return 0;
@@ -212,6 +316,7 @@ int probe_dma_detach(uint32_t count, uint32_t *stream_tag)
 {
 	uint32_t i;
 	uint32_t j;
+	int err;
 
 	trace_probe("probe_dma_detach() count = %u", count);
 
@@ -230,7 +335,9 @@ int probe_dma_detach(uint32_t count, uint32_t *stream_tag)
 				 * stream tag and return error if the are any
 				 */
 
-				/* TODO: Release DMA */
+				err = dma_probe_deinit(&_probe->inject_dma[j]);
+				if (err < 0)
+					return err;
 
 				_probe->inject_dma[j].stream_tag =
 					PROBE_DMA_INVALID;
