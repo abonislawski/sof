@@ -33,6 +33,14 @@ struct cavs_pm_runtime_data {
 	int dsp_client_bitmap[PLATFORM_CORE_COUNT]; /**< simple pwr override */
 };
 
+/**
+ * \brief CAVS DSP residency counters
+ * R0 - HPRO clock, highest power consumption state
+ * R1 - LPRO clock, low power consumption state
+ * R2 - LPS, lowest power consumption state
+ * with extra priority to R2 (LPS) which cannot be interrupted by R0/R1 changes
+ */
+
 #endif
 
 #else

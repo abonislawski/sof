@@ -59,6 +59,15 @@ static inline void select_cpu_clock(int freq_idx, bool release_unused)
 			pm_runtime_put(PM_RUNTIME_DSP, PWRD_BY_HPRO | (PLATFORM_CORE_COUNT - 1));
 #endif
 	}
+
+#if CONFIG_DSP_RESIDENCY_COUNTERS
+	if (get_dsp_r_state() != r2_r_state) {
+		if (freq_idx == CPU_LPRO_FREQ_IDX)
+			report_dsp_r_state(r1_r_state);
+		else
+			report_dsp_r_state(r0_r_state);
+	}
+#endif
 }
 #endif
 
