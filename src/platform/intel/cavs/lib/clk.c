@@ -132,7 +132,7 @@ void platform_clock_waiti_entry(void)
 		 * not release active clock just for waiti,
 		 * so they can be switched without delay on wake up.
 		 */
-		select_cpu_clock(target_idx, false);
+		select_cpu_clock(target_idx, true);
 		set_cpu_current_freq_idx(target_idx);
 	}
 }
@@ -149,7 +149,7 @@ void platform_clock_waiti_exit(void)
 		 * not release active clock just for waiti,
 		 * so they can be switched without delay on wake up.
 		 */
-		select_cpu_clock(target_idx, false);
+		select_cpu_clock(target_idx, true);
 		set_cpu_current_freq_idx(target_idx);
 	}
 }
