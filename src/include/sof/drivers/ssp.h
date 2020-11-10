@@ -234,6 +234,7 @@ struct ssp_pdata {
 	uint32_t state[2];		/* SSP_STATE_ for each direction */
 	struct sof_ipc_dai_config config;
 	struct sof_ipc_dai_ssp_params params;
+	uint32_t mdivc;
 };
 
 static inline void ssp_write(struct dai *dai, uint32_t reg, uint32_t value)
