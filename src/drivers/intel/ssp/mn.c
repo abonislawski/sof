@@ -292,11 +292,18 @@ static bool find_mn(uint32_t freq, uint32_t bclk,
 	while (scr_div > 1 && freq % scr_div != 0)
 		scr_div -= 2;
 
-	/* compute M/N with smallest dividend and divisor */
-	mn_div = gcd(bclk, freq / scr_div);
+	do {
+		/* compute M/N with smallest dividend and divisor */
+		mn_div = gcd(bclk, freq / scr_div);
 
-	m = bclk / mn_div;
-	n = freq / scr_div / mn_div;
+		m = bclk / mn_div;
+		n = freq / scr_div / mn_div;
+
+		if (m/n < 0.5 || scr_div < 3)
+			break;
+
+		scr_div -= 2;
+	} while (1);
 
 	/* M/N values can be up to 24 bits */
 	if (n & (~0xffffff))
