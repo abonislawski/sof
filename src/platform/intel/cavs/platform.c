@@ -351,9 +351,9 @@ int platform_init(struct sof *sof)
 		};
 
 	/* Turn off memory for all unused cores */
-	for (i = 0; i < CONFIG_CORE_COUNT; i++)
-		if (i != PLATFORM_PRIMARY_CORE_ID)
-			pm_runtime_put(CORE_MEMORY_POW, i);
+	//for (i = 0; i < CONFIG_CORE_COUNT; i++)
+		//if (i != PLATFORM_PRIMARY_CORE_ID)
+			//pm_runtime_put(CORE_MEMORY_POW, i);
 
 	/* pm runtime already initialized, request the DSP to stay in D0
 	 * until we are allowed to do full power gating (by the IPC req).
@@ -528,8 +528,13 @@ void platform_wait_for_interrupt(int level)
 {
 	platform_clock_on_waiti();
 
+	//tr_err(&ipc_tr, "platform_wait_for_interrupt()");
+
+	if (cpu_get_id() != PLATFORM_PRIMARY_CORE_ID)
+		save_secondary_core_state();
+
 #if (CONFIG_CAVS_LPS)
-	if (pm_runtime_is_active(PM_RUNTIME_DSP, PLATFORM_PRIMARY_CORE_ID))
+	if (pm_runtime_is_active(PM_RUNTIME_DSP, PLATFORM_PRIMARY_CORE_ID) || cpu_get_id() != PLATFORM_PRIMARY_CORE_ID)
 		arch_wait_for_interrupt(level);
 	else
 		lps_wait_for_interrupt(level);

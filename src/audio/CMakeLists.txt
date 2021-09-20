@@ -62,14 +62,6 @@ if(NOT CONFIG_LIBRARY)
 			kpb.c
 		)
 	endif()
-	if(CONFIG_COMP_GOOGLE_HOTWORD_DETECT)
-		add_local_sources(sof
-			google_hotword_detect.c
-		)
-		target_link_libraries(sof PRIVATE libhifi3_google_hotword_dsp_api.a)
-		target_link_libraries(sof PRIVATE c)
-		target_link_libraries(sof PRIVATE m)
-	endif()
 	if(CONFIG_COMP_SEL)
 		add_subdirectory(selector)
 	endif()

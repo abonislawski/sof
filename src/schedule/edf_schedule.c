@@ -64,7 +64,8 @@ static void edf_scheduler_run(void *data)
 	struct task *task;
 	uint64_t deadline;
 	uint32_t flags;
-
+	//if (cpu_get_id() == 1)
+	//	mailbox_sw_reg_write(PLATFORM_TRACEP_SECONDARY_CORE(19), 0xAAAA);
 	tr_dbg(&edf_tr, "edf_scheduler_run()");
 
 	irq_local_disable(flags);
@@ -281,6 +282,29 @@ int scheduler_init_edf(void)
 	return 0;
 }
 
+static void scheduler_restore_edf(void *data)
+{
+	struct edf_schedule_data *edf_sch = data;
+	uint32_t flags;
+
+	irq_local_disable(flags);
+
+	//if (cpu_get_id() == 1)
+	//	mailbox_sw_reg_write(PLATFORM_TRACEP_SECONDARY_CORE(19), 0xC);
+
+	/* disable and unregister EDF scheduler interrupt */
+	interrupt_disable(edf_sch->irq, edf_sch);
+	interrupt_unregister(edf_sch->irq, edf_sch);
+
+	edf_sch->irq = interrupt_get_irq(PLATFORM_SCHEDULE_IRQ,
+					 PLATFORM_SCHEDULE_IRQ_NAME);
+
+	interrupt_register(edf_sch->irq, edf_scheduler_run, edf_sch);
+	interrupt_enable(edf_sch->irq, edf_sch);
+
+	irq_local_enable(flags);
+}
+
 static void scheduler_free_edf(void *data)
 {
 	struct edf_schedule_data *edf_sch = data;
@@ -313,4 +337,5 @@ static const struct scheduler_ops schedule_edf_ops = {
 	.schedule_task_cancel	= schedule_edf_task_cancel,
 	.schedule_task_free	= schedule_edf_task_free,
 	.scheduler_free		= scheduler_free_edf,
+	.scheduler_restore	= scheduler_restore_edf,
 };

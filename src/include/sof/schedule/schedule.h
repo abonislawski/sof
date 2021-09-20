@@ -117,6 +117,7 @@ struct scheduler_ops {
 	 * This operation is optional.
 	 */
 	void (*scheduler_free)(void *data);
+	void (*scheduler_restore)(void *data);
 };
 
 /** \brief Holds information about scheduler. */
@@ -288,6 +289,25 @@ static inline void schedule_free(void)
 		if (sch->ops->scheduler_free)
 			sch->ops->scheduler_free(sch->data);
 	}
+}
+
+static inline void scheduler_restore(void)
+{
+	struct schedulers *schedulers = *arch_schedulers_get();
+	struct schedule_data *sch;
+	struct list_item *slist;
+	int i = 0;
+	
+	//mailbox_sw_reg_write(PLATFORM_TRACEP_SECONDARY_CORE(19), 0xDDFF);
+	//mailbox_sw_reg_write(PLATFORM_TRACEP_SECONDARY_CORE(17), (uint32_t)schedulers);
+	//mailbox_sw_reg_write(PLATFORM_TRACEP_SECONDARY_CORE(18), (uint32_t)(&schedulers->list)->next);
+	list_for_item(slist, &schedulers->list) {
+		sch = container_of(slist, struct schedule_data, list);
+		if (sch->ops->scheduler_restore)
+			sch->ops->scheduler_restore(sch->data);
+		i++;
+	}
+	mailbox_sw_reg_write(PLATFORM_TRACEP_SECONDARY_CORE(20), i);
 }
 
 /**

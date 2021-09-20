@@ -645,17 +645,23 @@ static int ipc_pm_gate(uint32_t header)
 	tr_info(&ipc_tr, "ipc: pm gate flags 0x%x", pm_gate.flags);
 
 	/* pause dma trace firstly if needed */
-	if (pm_gate.flags & SOF_PM_NO_TRACE)
-		trace_off();
+	//if (pm_gate.flags & SOF_PM_NO_TRACE)
+		//trace_off();
 
 	if (pm_gate.flags & SOF_PM_PPG)
+	{
 		pm_runtime_disable(PM_RUNTIME_DSP, PLATFORM_PRIMARY_CORE_ID);
+		//cpu_enable_core(1);
+	}
 	else
+	{
+		//cpu_disable_core(1);
 		pm_runtime_enable(PM_RUNTIME_DSP, PLATFORM_PRIMARY_CORE_ID);
+	}
 
 	/* resume dma trace if needed */
-	if (!(pm_gate.flags & SOF_PM_NO_TRACE))
-		trace_on();
+	//if (!(pm_gate.flags & SOF_PM_NO_TRACE))
+		//trace_on();
 
 	return 0;
 }

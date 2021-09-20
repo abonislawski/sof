@@ -162,7 +162,7 @@ enum task_state idc_do_cmd(void *data)
 	int core = cpu_get_id();
 	int initiator = idc->received_msg.core;
 
-	tr_info(&idc_tr, "idc_do_cmd()");
+	tr_err(&idc_tr, "idc_do_cmd()");
 
 	idc_cmd(&idc->received_msg);
 
@@ -214,6 +214,33 @@ int platform_idc_init(void)
 	ret = interrupt_register(idc->irq, idc_irq_handler, idc);
 	if (ret < 0)
 		return ret;
+	interrupt_enable(idc->irq, idc);
+
+	/* enable BUSY interrupt */
+	idc_write(IPC_IDCCTL, core, idc->busy_bit_mask);
+
+	return 0;
+}
+
+int platform_idc_restore(void)
+{
+	struct idc *idc = *idc_get();
+	int core = cpu_get_id();
+	int ret;
+
+	/* initialize idc data */
+	//idc->busy_bit_mask = idc_get_busy_bit_mask(core);
+	interrupt_disable(idc->irq, idc);
+	interrupt_unregister(idc->irq, idc);
+	/* configure interrupt */
+	idc->irq = interrupt_get_irq(PLATFORM_IDC_INTERRUPT,
+				     PLATFORM_IDC_INTERRUPT_NAME);
+	if (idc->irq < 0)
+		return idc->irq;
+	ret = interrupt_register(idc->irq, idc_irq_handler, idc);
+	if (ret < 0)
+		return ret;
+
 	interrupt_enable(idc->irq, idc);
 
 	/* enable BUSY interrupt */

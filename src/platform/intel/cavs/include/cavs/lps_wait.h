@@ -13,5 +13,6 @@ extern void *lps_pic_restore_vector_end;
 extern void *lps_pic_restore_vector_literals;
 
 void lps_wait_for_interrupt(int level);
+void save_secondary_core_state(void);
 
 #endif /*__CAVS_LPS_WAIT_H__ */

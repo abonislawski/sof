@@ -21,4 +21,15 @@ STRUCT_FIELD(long, 4, lps_ctx_, threadptr)
 STRUCT_FIELD(void*, 4, lps_ctx_, task_ctx)
 STRUCT_END(lps_ctx)
 
+STRUCT_BEGIN
+STRUCT_FIELD(void*, 4, lps_ctx2_, vector_level_2)
+STRUCT_FIELD(void*, 4, lps_ctx2_, vector_level_3)
+STRUCT_FIELD(void*, 4, lps_ctx2_, vector_level_4)
+STRUCT_FIELD(void*, 4, lps_ctx2_, vector_level_5)
+STRUCT_FIELD(long, 4, lps_ctx2_, intenable)
+STRUCT_FIELD(long, 4, lps_ctx2_, memmap_vecbase_reset)
+STRUCT_FIELD(long, 4, lps_ctx2_, threadptr)
+STRUCT_FIELD(void*, 4, lps_ctx2_, task_ctx)
+STRUCT_END(lps_ctx2)
+
 #endif /*__CAVS_LPS_CTX_H__ */

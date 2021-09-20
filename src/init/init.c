@@ -70,9 +70,27 @@ static inline void lp_sram_unpack(void)
 
 #if CONFIG_MULTICORE
 
+#include <sof/platform.h>
+#include <sof/lib/wait.h>
+
 int secondary_core_init(struct sof *sof)
 {
 	int err;
+	if (mailbox_sw_reg_read(PLATFORM_TRACEP_SECONDARY_CORE(2)) == 0xEE)
+	{
+		arch_init();
+		platform_interrupt_init();
+		scheduler_restore();
+		platform_idc_restore();
+
+		trace_point(TRACE_BOOT_PLATFORM);
+		mailbox_sw_reg_write(PLATFORM_TRACEP_SECONDARY_CORE(3), 0xDD);
+
+		while(1)
+		{
+			wait_for_interrupt(0);
+		}
+	}
 
 #ifndef __ZEPHYR__
 	/* init architecture */
@@ -103,6 +121,8 @@ int secondary_core_init(struct sof *sof)
 		return err;
 
 	trace_point(TRACE_BOOT_PLATFORM);
+
+	mailbox_sw_reg_write(PLATFORM_TRACEP_SECONDARY_CORE(2), 0xEE);
 
 #ifndef __ZEPHYR__
 	/* task initialized in edf_scheduler_init */

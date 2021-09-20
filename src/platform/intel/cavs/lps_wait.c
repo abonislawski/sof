@@ -51,6 +51,7 @@ struct lpsram_header {
 
 __aligned(PLATFORM_DCACHE_ALIGN) uint8_t lps_boot_stack[LPS_BOOT_STACK_SIZE];
 __aligned(PLATFORM_DCACHE_ALIGN) lps_ctx lps_restore;
+
 static void *pg_task_ctx;
 static uint8_t pg_task_stack[PG_TASK_STACK_SIZE];
 
@@ -103,6 +104,7 @@ static void platform_pg_task(void)
 	}
 }
 
+#include <sof/drivers/idc.h>
 static void platform_pg_int_handler(void *arg)
 {
 	uint32_t dir = (uint32_t)arg;
@@ -123,6 +125,7 @@ static void platform_pg_int_handler(void *arg)
 		arch_interrupt_disable_mask(0xffffffff);
 	} else {
 		pm_runtime_get(PM_RUNTIME_DSP, PLATFORM_PRIMARY_CORE_ID);
+		pm_runtime_get(PM_RUNTIME_DSP, 1);
 
 		/* set TCB to the one stored in platform_power_gate() */
 		task_context_set(lps_restore.task_ctx);
@@ -131,6 +134,14 @@ static void platform_pg_int_handler(void *arg)
 		platform_memory_windows_init(0);
 #endif
 		arch_interrupt_enable_mask(lps_restore.intenable);
+
+		idc_enable_interrupts(1, 0);
+
+		struct idc_msg power_up = {
+		IDC_MSG_POWER_UP, IDC_MSG_POWER_UP_EXT, 1 };
+
+		/* send IDC power up message */
+		idc_send_msg(&power_up, IDC_POWER_UP);
 	}
 }
 
@@ -139,6 +150,14 @@ void lps_wait_for_interrupt(int level)
 	int schedule_irq;
 
 	/* store the current state */
+
+	//uint32_t *ptr1 = (uint32_t*)0xbe20230c;
+	//uint32_t *ptr2 = (uint32_t*)0xbe20240c;
+	//uint32_t *ptr3 = (uint32_t*)0xbe20248c;
+	//mailbox_sw_reg_write(PLATFORM_TRACEP_SECONDARY_CORE(15), *ptr1);
+	//mailbox_sw_reg_write(PLATFORM_TRACEP_SECONDARY_CORE(16), *ptr2);
+	//mailbox_sw_reg_write(PLATFORM_TRACEP_SECONDARY_CORE(17), *ptr3);
+	//mailbox_sw_reg_write(PLATFORM_TRACEP_SECONDARY_CORE(18), (uint32_t)core_ctx_ptr[1]->schedulers);
 
 	lps_restore.intenable = arch_interrupt_get_enabled();
 
@@ -149,6 +168,7 @@ void lps_wait_for_interrupt(int level)
 	lps_restore.vector_level_3 = (void *)cpu_read_excsave3();
 	lps_restore.vector_level_4 = (void *)cpu_read_excsave4();
 	lps_restore.vector_level_5 = (void *)cpu_read_excsave5();
+
 
 	/* use SW INT handler to do the context switch directly there */
 	schedule_irq = interrupt_get_irq(IRQ_NUM_SOFTWARE3, NULL);
@@ -161,3 +181,20 @@ void lps_wait_for_interrupt(int level)
 	interrupt_set(schedule_irq);
 }
 
+void save_secondary_core_state()
+{
+	dcache_writeback_all();
+	//int schedule_irq;
+	/* store the current state */
+
+	/*lps_restore2.intenable = arch_interrupt_get_enabled();
+
+	lps_restore2.threadptr = cpu_read_threadptr();
+	lps_restore2.task_ctx = (void *)task_context_get();
+	lps_restore2.memmap_vecbase_reset = cpu_read_vecbase();
+	lps_restore2.vector_level_2 = (void *)cpu_read_excsave2();
+	lps_restore2.vector_level_3 = (void *)cpu_read_excsave3();
+	lps_restore2.vector_level_4 = (void *)cpu_read_excsave4();
+	lps_restore2.vector_level_5 = (void *)cpu_read_excsave5();*/
+
+}

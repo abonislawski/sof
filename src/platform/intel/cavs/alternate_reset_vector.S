@@ -21,7 +21,13 @@
 
 #include "xtos-internal.h"
 
+#include <cavs/lps_ctx.h>
+
+#define SW_INT_NUM 6
+#define SW_INT_MASK (1<<SW_INT_NUM)
+
 .type   secondary_core_init, @function
+.type   secondary_core_restore, @function
 .type   shared_vecbase_ptr, @object
 
 .section        .AlternateResetVector.text, "ax"
@@ -56,13 +62,6 @@ _AltResetVector:
 	wsr  a1, WINDOWSTART
 	wsr  a0, WINDOWBASE
 	rsync
-
-	get_prid a5
-	movi a6, PLATFORM_PRIMARY_CORE_ID
-	bne a5, a6, secondary_init //core0 handle restore, core1 always starts from scratch
-	/* Currently no implementation for core 0:
-	   - shutoff restore should be put either here on in L1SRAM */
-	j alt_boot_error_loop
 
 secondary_init:
 	/* Block interrupt but not enable WOE */
@@ -193,6 +192,7 @@ alt_boot_secondary_core_wakeup:
 	memw
 
 	jx a2
+
 alt_boot_handle_incorrect_idc:
 	// Clear BUSY
 	l32i a2, a3, 0
