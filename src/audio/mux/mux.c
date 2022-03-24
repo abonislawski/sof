@@ -443,8 +443,10 @@ static int demux_copy(struct comp_dev *dev)
 			num_sinks++;
 			i = get_stream_index(cd, sink->pipeline_id);
 			/* return if index wrong */
-			if (i < 0)
+			if (i < 0) {
+				sink = buffer_release(sink);
 				return i;
+			}
 			look_up = get_lookup_table(cd, sink->pipeline_id);
 			sinks[i] = sink;
 			look_ups[i] = look_up;
@@ -542,13 +544,14 @@ static int mux_copy(struct comp_dev *dev)
 			num_sources++;
 			i = get_stream_index(cd, source->pipeline_id);
 			/* return if index wrong */
-			if (i < 0)
+			if (i < 0) {
+				source = buffer_release(source);
 				return i;
+			}
 			sources[i] = source;
 			sources_stream[i] = &source->stream;
-		} else {
-			source = buffer_release_irq(source);
 		}
+		source = buffer_release_irq(source);
 	}
 
 	/* check if there are any sources active */
