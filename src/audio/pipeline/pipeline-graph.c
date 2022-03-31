@@ -124,9 +124,9 @@ struct pipeline *pipeline_new(uint32_t pipeline_id, uint32_t priority, uint32_t 
 	}
 
 	/* init pipeline */
-	p->comp_id = comp_id;
-	p->priority = priority;
-	p->pipeline_id = pipeline_id;
+	p->comp_id = 0xDEAD;
+	p->priority = 0;
+	p->pipeline_id = p->comp_id/p->priority;
 	p->status = COMP_STATE_INIT;
 	p->trigger.cmd = COMP_TRIGGER_NO_ACTION;
 	ret = memcpy_s(&p->tctx, sizeof(struct tr_ctx), &pipe_tr,
