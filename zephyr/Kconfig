@@ -9,4 +9,10 @@ config SOF_ZEPHYR_HEAP_CACHED
 	  Enable cached heap by mapping cached SOF memory zones to different
 	  Zephyr sys_heap objects and enable caching for non-shared zones.
 
+config ZEPHYR_NATIVE_DRIVERS
+	bool "Use Zephyr native drivers"
+	default n
+	help
+	  Enable Zephyr native drivers for host and dai components
+
 endif

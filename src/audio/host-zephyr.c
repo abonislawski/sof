@@ -34,8 +34,6 @@
 
 static const struct comp_driver comp_host;
 
-LOG_MODULE_REGISTER(host, CONFIG_SOF_LOG_LEVEL);
-
 /* 8b9d100c-6d78-418f-90a3-e0e805d0852b */
 DECLARE_SOF_RT_UUID("host", host_uuid, 0x8b9d100c, 0x6d78, 0x418f,
 		 0x90, 0xa3, 0xe0, 0xe8, 0x05, 0xd0, 0x85, 0x2b);
@@ -68,6 +66,7 @@ struct host_data {
 	struct dma *dma;
 	struct dma_chan_data *chan;
 	struct dma_sg_config config;
+	struct dma_config z_config;
 	struct comp_buffer *dma_buffer;
 	struct comp_buffer *local_buffer;
 
@@ -145,14 +144,20 @@ static int host_dma_set_config_and_copy(struct comp_dev *dev, uint32_t bytes)
 	local_elem->size = bytes;
 
 	/* reconfigure transfer */
-	ret = dma_set_config(hd->chan, &hd->config);
+	ret = dma_config(hd->chan->dma->z_dev, hd->chan->index, &hd->z_config);
 	if (ret < 0) {
-		comp_err(dev, "host_dma_set_config_and_copy(): dma_set_config() failed, ret = %d",
+		comp_err(dev, "host_dma_set_config_and_copy(): dma_config() failed, ret = %d",
 			 ret);
 		return ret;
 	}
 
-	ret = dma_copy(hd->chan, bytes, DMA_COPY_ONE_SHOT | DMA_COPY_BLOCKING);
+	struct dma_cb_data next = {
+		.channel = hd->chan,
+		.elem = { .size = bytes },
+	};
+	notifier_event(hd->chan, NOTIFIER_ID_DMA_COPY,
+		       NOTIFIER_TARGET_CORE_LOCAL, &next, sizeof(next));
+	ret = dma_reload(hd->chan->dma->z_dev, hd->chan->index, 0, 0, bytes);
 	if (ret < 0) {
 		comp_err(dev, "host_dma_set_config_and_copy(): dma_copy() failed, ret = %d",
 			 ret);
@@ -288,13 +293,19 @@ static int host_copy_one_shot(struct comp_dev *dev)
 	}
 
 	/* reconfigure transfer */
-	ret = dma_set_config(hd->chan, &hd->config);
+	ret = dma_config(hd->chan->dma->z_dev, hd->chan->index, &hd->z_config);
 	if (ret < 0) {
-		comp_err(dev, "host_copy_one_shot(): dma_set_config() failed, ret = %u", ret);
+		comp_err(dev, "host_copy_one_shot(): dma_config() failed, ret = %u", ret);
 		return ret;
 	}
 
-	ret = dma_copy(hd->chan, copy_bytes, DMA_COPY_ONE_SHOT);
+	struct dma_cb_data next = {
+		.channel = hd->chan,
+		.elem = { .size = copy_bytes },
+	};
+	notifier_event(hd->chan, NOTIFIER_ID_DMA_COPY,
+		       NOTIFIER_TARGET_CORE_LOCAL, &next, sizeof(next));
+	ret = dma_reload(hd->chan->dma->z_dev, hd->chan->index, 0, 0, copy_bytes);
 	if (ret < 0) {
 		comp_err(dev, "host_copy_one_shot(): dma_copy() failed, ret = %u", ret);
 		return ret;
@@ -448,20 +459,22 @@ static uint32_t host_get_copy_bytes_normal(struct comp_dev *dev)
 {
 	struct host_data *hd = comp_get_drvdata(dev);
 	struct comp_buffer *buffer = hd->local_buffer;
+	struct dma_status stat;
 	uint32_t avail_bytes = 0;
 	uint32_t free_bytes = 0;
 	uint32_t copy_bytes = 0;
 	int ret;
 
 	/* get data sizes from DMA */
-	ret = dma_get_data_size(hd->chan, &avail_bytes,
-				&free_bytes);
+	ret = dma_get_status(hd->chan->dma->z_dev, hd->chan->index, &stat);
 	if (ret < 0) {
-		comp_err(dev, "host_get_copy_bytes_normal(): dma_get_data_size() failed, ret = %u",
+		comp_err(dev, "host_get_copy_bytes_normal(): dma_get_status() failed, ret = %u",
 			 ret);
 		/* return 0 copy_bytes in case of error to skip DMA copy */
 		return 0;
 	}
+	avail_bytes = stat.pending_length;
+	free_bytes = stat.free;
 
 	buffer = buffer_acquire(buffer);
 
@@ -513,7 +526,13 @@ static int host_copy_normal(struct comp_dev *dev)
 	if (!copy_bytes)
 		return 0;
 
-	ret = dma_copy(hd->chan, copy_bytes, flags);
+	struct dma_cb_data next = {
+		.channel = hd->chan,
+		.elem = { .size = copy_bytes },
+	};
+	notifier_event(hd->chan, NOTIFIER_ID_DMA_COPY,
+		       NOTIFIER_TARGET_CORE_LOCAL, &next, sizeof(next));
+	ret = dma_reload(hd->chan->dma->z_dev, hd->chan->index, 0, 0, copy_bytes);
 	if (ret < 0)
 		comp_err(dev, "host_copy_normal(): dma_copy() failed, ret = %u", ret);
 
@@ -596,14 +615,14 @@ static int host_trigger(struct comp_dev *dev, int cmd)
 
 	switch (cmd) {
 	case COMP_TRIGGER_START:
-		ret = dma_start(hd->chan);
+		ret = dma_start(hd->chan->dma->z_dev, hd->chan->index);
 		if (ret < 0)
 			comp_err(dev, "host_trigger(): dma_start() failed, ret = %u",
 				 ret);
 		break;
 	case COMP_TRIGGER_STOP:
 	case COMP_TRIGGER_XRUN:
-		ret = dma_stop(hd->chan);
+		ret = dma_stop(hd->chan->dma->z_dev, hd->chan->index);
 		if (ret < 0)
 			comp_err(dev, "host_trigger(): dma stop failed: %d",
 				 ret);
@@ -659,7 +678,7 @@ static struct comp_dev *host_new(const struct comp_driver *drv,
 
 	ipc_build_stream_posn(&hd->posn, SOF_IPC_STREAM_POSITION, dev->ipc_config.id);
 
-	hd->msg = ipc_msg_init(hd->posn.rhdr.hdr.cmd, hd->posn.rhdr.hdr.size);
+	hd->msg = ipc_msg_init(hd->posn.rhdr.hdr.cmd, sizeof(hd->posn));
 	if (!hd->msg) {
 		comp_err(dev, "host_new(): ipc_msg_init failed");
 		dma_put(hd->dma);
@@ -745,12 +764,15 @@ static int host_params(struct comp_dev *dev,
 {
 	struct host_data *hd = comp_get_drvdata(dev);
 	struct dma_sg_config *config = &hd->config;
+	struct dma_sg_elem *sg_elem;
+	struct dma_config *dma_cfg = &hd->z_config;
+	struct dma_block_config dma_block_cfg;
 	uint32_t period_count;
 	uint32_t period_bytes;
 	uint32_t buffer_size;
 	uint32_t addr_align;
 	uint32_t align;
-	int err;
+	int i, channel, err;
 
 	comp_dbg(dev, "host_params()");
 
@@ -867,19 +889,65 @@ static int host_params(struct comp_dev *dev,
 	host_elements_reset(dev);
 
 	hd->stream_tag -= 1;
+	uint32_t hda_chan = hd->stream_tag;
 	/* get DMA channel from DMAC
 	 * note: stream_tag is ignored by dw-dma
 	 */
-	hd->chan = dma_channel_get(hd->dma, hd->stream_tag);
-	if (!hd->chan) {
+	channel = dma_request_channel(hd->dma->z_dev, &hda_chan);
+	if (channel < 0) {
 		comp_err(dev, "host_params(): hd->chan is NULL");
 		return -ENODEV;
 	}
+	hd->chan = &hd->dma->chan[channel];
 
-	err = dma_set_config(hd->chan, &hd->config);
+	uint32_t buffer_addr = 0;
+	uint32_t buffer_bytes = 0;
+	uint32_t addr;
+
+	hd->chan->direction = config->direction;
+	hd->chan->desc_count = config->elem_array.count;
+	hd->chan->is_scheduling_source = config->is_scheduling_source;
+	hd->chan->period = config->period;
+
+	memset(dma_cfg, 0, sizeof(*dma_cfg));
+
+	dma_cfg->block_count = 1;
+	dma_cfg->source_data_size = config->src_width;
+	dma_cfg->dest_data_size = config->dest_width;
+	dma_cfg->head_block  = &dma_block_cfg;
+
+	for (i = 0; i < config->elem_array.count; i++) {
+		sg_elem = config->elem_array.elems + i;
+
+		if (config->direction == DMA_DIR_HMEM_TO_LMEM ||
+		    config->direction == DMA_DIR_DEV_TO_MEM)
+			addr = sg_elem->dest;
+		else
+			addr = sg_elem->src;
+
+		buffer_bytes += sg_elem->size;
+
+		if (buffer_addr == 0)
+			buffer_addr = addr;
+	}
+
+	dma_block_cfg.block_size = buffer_bytes;
+
+	switch (config->direction) {
+	case DMA_DIR_LMEM_TO_HMEM:
+		dma_cfg->channel_direction = MEMORY_TO_HOST;
+		dma_block_cfg.source_address = buffer_addr;
+		break;
+	case DMA_DIR_HMEM_TO_LMEM:
+		dma_cfg->channel_direction = HOST_TO_MEMORY;
+		dma_block_cfg.dest_address = buffer_addr;
+		break;
+	}
+
+	err = dma_config(hd->chan->dma->z_dev, hd->chan->index, dma_cfg);
 	if (err < 0) {
-		comp_err(dev, "host_params(): dma_set_config() failed");
-		dma_channel_put(hd->chan);
+		comp_err(dev, "host_params(): dma_config() failed");
+		dma_release_channel(hd->dma->z_dev, hd->chan->index);
 		hd->chan = NULL;
 		return err;
 	}
@@ -959,11 +1027,11 @@ static int host_reset(struct comp_dev *dev)
 	comp_dbg(dev, "host_reset()");
 
 	if (hd->chan) {
-		dma_stop_delayed(hd->chan);
+		dma_stop(hd->chan->dma->z_dev, hd->chan->index);
 
 		/* remove callback */
 		notifier_unregister(dev, hd->chan, NOTIFIER_ID_DMA_COPY);
-		dma_channel_put(hd->chan);
+		dma_release_channel(hd->dma->z_dev, hd->chan->index);
 		hd->chan = NULL;
 	}
 
@@ -971,9 +1039,6 @@ static int host_reset(struct comp_dev *dev)
 	dma_sg_free(&hd->host.elem_array);
 	dma_sg_free(&hd->local.elem_array);
 	dma_sg_free(&hd->config.elem_array);
-
-	/* It's safe that cleaning out `hd->config` after `dma_sg_free` for config.elem_array */
-	memset(&hd->config, 0, sizeof(hd->config));
 
 	/* free DMA buffer */
 	if (hd->dma_buffer) {
