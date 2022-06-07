@@ -186,7 +186,7 @@ config SCHEDULE_LOG_CYCLE_STATISTICS
 
 config PERFORMANCE_COUNTERS
 	bool "Performance counters"
-	default n
+	default y
 	help
 	  Enables tracing of simple performance measurements.
 	  A basic use case is to measure number of platform & cpu clock ticks
@@ -199,7 +199,7 @@ config PERFORMANCE_COUNTERS
 config PERFORMANCE_COUNTERS_RUN_AVERAGE
 	bool "Performance counters run average"
 	depends on PERFORMANCE_COUNTERS
-	default n
+	default y
 	help
 	  Enables tracing of performance measurements with window-based average
 	  calculations. In addition to the usage of stamp(), the performance
