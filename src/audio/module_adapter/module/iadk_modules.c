@@ -106,7 +106,7 @@ static int iadk_modules_init(struct processing_module *mod)
 	} else {
 		/* If not start agent for sof loadable */
 		mod->is_loadable = true;
-		mod_adp = native_system_agent_start(md->module_entry_point, module_id, instance_id,
+		mod_adp = native_system_agent_start(&mod->sys_service, md->module_entry_point, module_id, instance_id,
 						    0, log_handle, &mod_cfg,
 						    &dev->drv->ops, dev->drv->uid);
 	}

@@ -12,11 +12,11 @@
 #ifndef __SOF_AUDIO_MODULE_GENERIC__
 #define __SOF_AUDIO_MODULE_GENERIC__
 
-#include <sof/audio/component.h>
-#include <sof/ut.h>
-#include <sof/lib/memory.h>
+#include <../../include/component.h>
+//#include <sof/ut.h>
+//#include <sof/lib/memory.h>
 #include "module_interface.h"
-
+#include <../include/coherent.h>
 #if CONFIG_INTEL_MODULES
 #include "iadk_modules.h"
 #endif
@@ -259,31 +259,32 @@ static inline void module_update_buffer_position(struct input_stream_buffer *inp
 						 struct output_stream_buffer *output_buffers,
 						 uint32_t frames)
 {
-	struct audio_stream __sparse_cache *source = input_buffers->data;
-	struct audio_stream __sparse_cache *sink = output_buffers->data;
+	struct audio_stream  *source = input_buffers->data;
+	struct audio_stream  *sink = output_buffers->data;
 
 	input_buffers->consumed += audio_stream_frame_bytes(source) * frames;
 	output_buffers->size += audio_stream_frame_bytes(sink) * frames;
 }
 
-__must_check static inline
-struct module_source_info __sparse_cache *module_source_info_acquire(struct module_source_info *msi)
+static inline
+struct module_source_info *module_source_info_acquire(struct module_source_info *msi)
 {
-	struct coherent __sparse_cache *c;
-
-	c = coherent_acquire_thread(&msi->c, sizeof(*msi));
-
-	return attr_container_of(c, struct module_source_info __sparse_cache, c, __sparse_cache);
+//	struct coherent  *c;
+//
+//	c = coherent_acquire_thread(&msi->c, sizeof(*msi));
+//
+//	return attr_container_of(c, struct module_source_info , c, );
+return NULL;
 }
 
-static inline void module_source_info_release(struct module_source_info __sparse_cache *msi)
+static inline void module_source_info_release(struct module_source_info  *msi)
 {
 	coherent_release_thread(&msi->c, sizeof(*msi));
 }
 
 /* when source argument is NULL, this function returns the first unused entry */
 static inline
-int find_module_source_index(struct module_source_info __sparse_cache *msi,
+int find_module_source_index(struct module_source_info  *msi,
 			     const struct comp_dev *source)
 {
 	int i;
