@@ -91,6 +91,9 @@ static int google_rtc_audio_processing_params(
 	struct google_rtc_audio_processing_comp_data *cd = comp_get_drvdata(dev);
 	struct comp_buffer __sparse_cache *sink_c;
 	struct comp_buffer *sink;
+	struct comp_buffer __sparse_cache *source_c;
+	struct comp_buffer *source;
+	struct list_item *source_list;
 
 	/* update sink buffer format */
 	memset(params, 0, sizeof(*params));
@@ -111,6 +114,17 @@ static int google_rtc_audio_processing_params(
 		sink_c = buffer_acquire(sink);
 		ipc4_update_buffer_format(sink_c, out_fmt);
 		buffer_release(sink_c);
+	}
+
+	list_for_item(source_list, &dev->bsource_list) {
+		struct ipc4_audio_format *in_fmt = &cd->config.base_cfg.audio_fmt;
+
+		source = container_of(source_list, struct comp_buffer, sink_list);
+		source_c = buffer_acquire(source);
+
+		ipc4_update_buffer_format(source_c, in_fmt);
+
+		buffer_release(source_c);
 	}
 #endif
 
