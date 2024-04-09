@@ -83,7 +83,7 @@ static struct pm_notifier pm_state_notifier = {
 
 #if CONFIG_KCPS_DYNAMIC_CLOCK_CONTROL
 /* Value to be determined experimentaly */
-#define BASE_CPS_USAGE 10000
+#define BASE_CPS_USAGE 20000
 #else
 #define BASE_CPS_USAGE (CLK_MAX_CPU_HZ / 1000)
 #endif
