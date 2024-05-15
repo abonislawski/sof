@@ -260,7 +260,7 @@ static void ipc_work_handler(struct k_work *work)
 
 void ipc_schedule_process(struct ipc *ipc)
 {
-	schedule_task(&ipc->ipc_task, 0, IPC_PERIOD_USEC);
+	schedule_task(ipc->ipc_task, 0, IPC_PERIOD_USEC);
 }
 
 int ipc_init(struct sof *sof)

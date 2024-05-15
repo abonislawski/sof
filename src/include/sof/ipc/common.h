@@ -65,7 +65,7 @@ struct ipc {
 	struct list_item comp_list;	/* list of component devices */
 
 	/* processing task */
-	struct task ipc_task;
+	struct task *ipc_task;
 
 #ifdef __ZEPHYR__
 	struct k_work_delayable z_delayed_work;

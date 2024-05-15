@@ -31,6 +31,7 @@
 #include <sof/list.h>
 #include <sof/platform.h>
 #include <sof/schedule/edf_schedule.h>
+#include <sof/schedule/twb_schedule.h>
 #include <sof/schedule/schedule.h>
 #include <rtos/task.h>
 #include <rtos/spinlock.h>
@@ -162,8 +163,10 @@ static int ipc_device_resume_handler(const struct device *dev, void *arg)
 	intel_adsp_ipc_set_message_handler(INTEL_ADSP_IPC_HOST_DEV, message_handler, ipc);
 
 	/* schedule task */
-	schedule_task_init_edf(&ipc->ipc_task, SOF_UUID(ipc_task_uuid),
-			       &ipc_task_ops, ipc, 0, 0);
+	//schedule_task_init_edf(&ipc->ipc_task, SOF_UUID(ipc_task_uuid),
+	//		       &ipc_task_ops, ipc, 0, 0);
+	scheduler_twb_task_init(&ipc->ipc_task, SOF_UUID(ipc_task_uuid),
+			       &ipc_task_ops, ipc, 0, "IPC", ZEPHYR_TWB_STACK_SIZE, CONFIG_TWB_THREAD_MEDIUM_PRIORITY, 4);
 
 	return 0;
 }
@@ -280,8 +283,10 @@ int platform_ipc_init(struct ipc *ipc)
 	ipc_set_drvdata(ipc, NULL);
 
 	/* schedule task */
-	schedule_task_init_edf(&ipc->ipc_task, SOF_UUID(ipc_task_uuid),
-			       &ipc_task_ops, ipc, 0, 0);
+	//schedule_task_init_edf(&ipc->ipc_task, SOF_UUID(ipc_task_uuid),
+	//		       &ipc_task_ops, ipc, 0, 0);
+	scheduler_twb_task_init(&ipc->ipc_task, SOF_UUID(ipc_task_uuid),
+			       &ipc_task_ops, ipc, 0, "IPC", ZEPHYR_TWB_STACK_SIZE, CONFIG_TWB_THREAD_MEDIUM_PRIORITY, 4);
 
 	/* configure interrupt - work is done internally by Zephyr API */
 
