@@ -65,7 +65,11 @@ struct ipc {
 	struct list_item comp_list;	/* list of component devices */
 
 	/* processing task */
+#if CONFIG_ZEPHYR_TWB_SCHEDULER
+	struct task *ipc_task;
+#else
 	struct task ipc_task;
+#endif
 
 #ifdef __ZEPHYR__
 	struct k_work_delayable z_delayed_work;
