@@ -53,6 +53,9 @@ extern struct tr_ctx lib_manager_tr;
 
 static int llext_manager_update_flags(void __sparse_cache *vma, size_t size, uint32_t flags)
 {
+	if ((uintptr_t)vma > L3_MEM_BASE_ADDR)
+		return 0;
+
 	size_t pre_pad_size = (uintptr_t)vma & (PAGE_SZ - 1);
 	void *aligned_vma = (__sparse_force uint8_t *)vma - pre_pad_size;
 
@@ -62,6 +65,9 @@ static int llext_manager_update_flags(void __sparse_cache *vma, size_t size, uin
 
 static int llext_manager_align_map(void __sparse_cache *vma, size_t size, uint32_t flags)
 {
+	if ((uintptr_t)vma > L3_MEM_BASE_ADDR)
+		return 0;
+
 	size_t pre_pad_size = (uintptr_t)vma & (PAGE_SZ - 1);
 	void *aligned_vma = (__sparse_force uint8_t *)vma - pre_pad_size;
 
@@ -71,6 +77,9 @@ static int llext_manager_align_map(void __sparse_cache *vma, size_t size, uint32
 
 static int llext_manager_align_unmap(void __sparse_cache *vma, size_t size)
 {
+	if ((uintptr_t)vma > L3_MEM_BASE_ADDR)
+		return 0;
+
 	size_t pre_pad_size = (uintptr_t)vma & (PAGE_SZ - 1);
 	void *aligned_vma = (__sparse_force uint8_t *)vma - pre_pad_size;
 
