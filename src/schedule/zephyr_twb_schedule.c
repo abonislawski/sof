@@ -22,8 +22,9 @@
 LOG_MODULE_REGISTER(twb_schedule, CONFIG_SOF_LOG_LEVEL);
 
 /* e93326d8-0d14-4bf0-bcb9-e063d3d80136 */
-DECLARE_SOF_UUID("twb-schedule", twb_sched_uuid, 0xe93326d8, 0x0d14, 0x4bf0,
+SOF_DEFINE_UUID("twb-schedule", twb_sched_uuid, 0xe93326d8, 0x0d14, 0x4bf0,
 		 0xbc, 0xb9, 0xe0, 0x63, 0xd3, 0xd8, 0x01, 0x36);
+//SOF_DEFINE_REG_UUID(twb_sched);
 
 DECLARE_TR_CTX(twb_tr, SOF_UUID(twb_sched_uuid), LOG_LEVEL_INFO);
 

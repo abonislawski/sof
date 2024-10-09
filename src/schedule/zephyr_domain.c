@@ -93,7 +93,6 @@ static void zephyr_domain_thread_fn(void *p1, void *p2, void *p3)
 			k_mutex_unlock(&zephyr_domain->block_mutex);
 		}
 #endif
-
 		dt->handler(dt->arg);
 		cycles1 = k_cycle_get_32();
 
@@ -156,8 +155,7 @@ static int zephyr_domain_register(struct ll_schedule_domain *domain,
 	struct zephyr_domain *zephyr_domain = ll_sch_domain_get_pdata(domain);
 	int core = cpu_get_id();
 	struct zephyr_domain_thread *dt = zephyr_domain->domain_thread + core;
-	char thread_name[] = "ll_thread0";
-	k_tid_t thread;
+
 	k_spinlock_key_t key;
 
 	tr_dbg(&ll_tr, "zephyr_domain_register()");
@@ -169,22 +167,8 @@ static int zephyr_domain_register(struct ll_schedule_domain *domain,
 	dt->handler = handler;
 	dt->arg = arg;
 
-	/* 10 is rather random, we better not accumulate 10 missed timer interrupts */
-	k_sem_init(&dt->sem, 0, 10);
-
-	thread_name[sizeof(thread_name) - 2] = '0' + core;
-
-	thread = k_thread_create(&dt->ll_thread,
-				 ll_sched_stack[core],
-				 ZEPHYR_LL_STACK_SIZE,
-				 zephyr_domain_thread_fn, zephyr_domain, NULL, NULL,
-				 CONFIG_LL_THREAD_PRIORITY, 0, K_FOREVER);
-
-	k_thread_cpu_mask_clear(thread);
-	k_thread_cpu_mask_enable(thread, core);
-	k_thread_name_set(thread, thread_name);
-
-	k_thread_start(thread);
+	k_sem_reset(&dt->sem);
+	k_thread_start(&dt->ll_thread);
 
 	key = k_spin_lock(&domain->lock);
 
@@ -218,8 +202,10 @@ static int zephyr_domain_unregister(struct ll_schedule_domain *domain,
 	tr_dbg(&ll_tr, "zephyr_domain_unregister()");
 
 	/* tasks still registered on this core */
-	if (num_tasks)
+	if (num_tasks) {
+		tr_info(&ll_tr, "num_tasks %d", num_tasks);
 		return 0;
+	}
 
 	key = k_spin_lock(&domain->lock);
 
@@ -230,7 +216,6 @@ static int zephyr_domain_unregister(struct ll_schedule_domain *domain,
 		k_timer_stop(&zephyr_domain->timer);
 		k_timer_user_data_set(&zephyr_domain->timer, NULL);
 	}
-
 	zephyr_domain->domain_thread[core].handler = NULL;
 
 	k_spin_unlock(&domain->lock, key);
@@ -238,11 +223,7 @@ static int zephyr_domain_unregister(struct ll_schedule_domain *domain,
 	tr_info(&ll_tr, "zephyr_domain_unregister domain->type %d domain->clk %d",
 		domain->type, domain->clk);
 
-	/*
-	 * If running in the context of the domain thread, k_thread_abort() will
-	 * not return
-	 */
-	k_thread_abort(&zephyr_domain->domain_thread[core].ll_thread);
+	k_sem_reset(&zephyr_domain->domain_thread[core].sem);
 
 	return 0;
 }
@@ -285,6 +266,10 @@ struct ll_schedule_domain *zephyr_domain_init(int clk)
 {
 	struct ll_schedule_domain *domain;
 	struct zephyr_domain *zephyr_domain;
+	struct zephyr_domain_thread *dt;
+	k_tid_t thread;
+	int core;
+	char thread_name[] = "ll_thread0";
 
 	domain = domain_init(SOF_SCHEDULE_LL_TIMER, clk, false,
 			     &zephyr_domain_ops);
@@ -301,6 +286,24 @@ struct ll_schedule_domain *zephyr_domain_init(int clk)
 #endif
 
 	ll_sch_domain_set_pdata(domain, zephyr_domain);
+
+	for (core = 0; core < CONFIG_CORE_COUNT; core++) {
+		dt = zephyr_domain->domain_thread + core;
+		thread_name[sizeof(thread_name) - 2] = '0' + core;
+
+		/* 10 is rather random, we better not accumulate 10 missed timer interrupts */
+		k_sem_init(&dt->sem, 0, 10);
+
+		thread = k_thread_create(&dt->ll_thread,
+					 ll_sched_stack[core],
+					 ZEPHYR_LL_STACK_SIZE,
+					 zephyr_domain_thread_fn, zephyr_domain, NULL, NULL,
+					 CONFIG_LL_THREAD_PRIORITY, 0, K_FOREVER);
+
+		k_thread_cpu_mask_clear(thread);
+		k_thread_cpu_mask_enable(thread, core);
+		k_thread_name_set(thread, thread_name);
+	}
 
 	return domain;
 }
