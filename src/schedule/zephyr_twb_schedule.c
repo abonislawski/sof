@@ -183,18 +183,20 @@ static void twb_thread_fn(void *p1, void *p2, void *p3)
 		 * if not, set the state returned by run procedure
 		 */
 		if (task->state == SOF_TASK_STATE_RUNNING) {
-			task->state = state;
+			if (pdata->cycles_granted) {
+				k_thread_runtime_stats_get(pdata->thread_id, &rt_stats_thread);
+				pdata->cycles_consumed += rt_stats_thread.execution_cycles - pdata->cycles_ref;
+				pdata->cycles_ref = rt_stats_thread.execution_cycles;
+			}
 			switch (state) {
 			case SOF_TASK_STATE_RESCHEDULE:
 				/* mark to reschedule, schedule time is already calculated */
 				task->state = SOF_TASK_STATE_QUEUED;
+				break;
 			case SOF_TASK_STATE_CANCEL:
+				task->state = SOF_TASK_STATE_CANCEL;
+				break;
 			case SOF_TASK_STATE_COMPLETED:
-				if (pdata->cycles_granted) {
-					k_thread_runtime_stats_get(pdata->thread_id, &rt_stats_thread);
-					pdata->cycles_consumed += rt_stats_thread.execution_cycles - pdata->cycles_ref;
-					pdata->cycles_ref = rt_stats_thread.execution_cycles;
-				}
 				break;
 
 			default:
@@ -206,8 +208,10 @@ static void twb_thread_fn(void *p1, void *p2, void *p3)
 		scheduler_twb_unlock(lock_key);
 
 		/* call task_complete out of lock and save the stats */
-		if (task->state == SOF_TASK_STATE_COMPLETED)
+		if (state == SOF_TASK_STATE_COMPLETED) {
 			task_complete(task);
+			task->state = SOF_TASK_STATE_COMPLETED;
+		}
 
 		if (task->state != SOF_TASK_STATE_RUNNING)
 			k_thread_suspend(pdata->thread_id);
