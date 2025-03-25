@@ -281,8 +281,6 @@ static int multiband_drc_free(struct processing_module *mod)
 {
 	struct multiband_drc_comp_data *cd = module_get_private_data(mod);
 
-	assert_can_be_cold();
-
 	comp_info(mod->dev, "multiband_drc_free()");
 
 	comp_data_blob_handler_free(cd->model_handler);
@@ -299,8 +297,6 @@ static int multiband_drc_set_config(struct processing_module *mod, uint32_t para
 {
 	struct comp_dev *dev = mod->dev;
 
-	assert_can_be_cold();
-
 	comp_dbg(dev, "multiband_drc_set_config()");
 
 	return multiband_drc_set_ipc_config(mod, param_id,
@@ -312,8 +308,6 @@ static int multiband_drc_get_config(struct processing_module *mod,
 				    uint8_t *fragment, size_t fragment_size)
 {
 	struct sof_ipc_ctrl_data *cdata = (struct sof_ipc_ctrl_data *)fragment;
-
-	assert_can_be_cold();
 
 	comp_dbg(mod->dev, "multiband_drc_get_config()");
 
@@ -365,8 +359,6 @@ static int multiband_drc_prepare(struct processing_module *mod,
 	int channels;
 	int rate;
 	int ret = 0;
-
-	assert_can_be_cold();
 
 	comp_info(dev, "multiband_drc_prepare()");
 

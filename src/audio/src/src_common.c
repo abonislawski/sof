@@ -54,8 +54,6 @@ static int src_buffer_lengths(struct comp_dev *dev, struct comp_data *cd, int nc
 	int source_frames;
 	int r1, n;
 
-	assert_can_be_cold();
-
 	a = &cd->param;
 	fs_in = cd->source_rate;
 	fs_out = cd->sink_rate;
@@ -193,8 +191,6 @@ static int src_polyphase_init(struct polyphase_src *src, struct src_param *p,
 	const struct src_stage *stage2;
 	int n_stages;
 	int ret;
-
-	assert_can_be_cold();
 
 	if (p->idx_in < 0 || p->idx_out < 0)
 		return -EINVAL;
@@ -404,8 +400,6 @@ static int src_verify_params(struct processing_module *mod)
 	struct comp_dev *dev = mod->dev;
 	int ret;
 
-	assert_can_be_cold();
-
 	comp_dbg(dev, "src_verify_params()");
 
 	/* check whether params->rate (received from driver) are equal
@@ -490,8 +484,6 @@ int src_params_general(struct processing_module *mod,
 	int32_t *buffer_start;
 	int n;
 	int err;
-
-	assert_can_be_cold();
 
 	comp_info(dev, "src_params()");
 
@@ -589,8 +581,6 @@ int src_param_set(struct comp_dev *dev, struct comp_data *cd)
 	int fs_in = cd->source_rate;
 	int fs_out = cd->sink_rate;
 
-	assert_can_be_cold();
-
 	a->idx_in = src_find_fs(a->in_fs, a->num_in_fs, fs_in);
 	a->idx_out = src_find_fs(a->out_fs, a->num_out_fs, fs_out);
 
@@ -616,8 +606,6 @@ int src_allocate_copy_stages(struct comp_dev *dev, struct src_param *prm,
 #else
 	size_t tap_size = sizeof(int32_t);
 #endif
-
-	assert_can_be_cold();
 
 	stage_dst = rmalloc(SOF_MEM_ZONE_RUNTIME, 0, SOF_MEM_CAPS_RAM,
 			    2 * sizeof(*stage_dst));
@@ -684,16 +672,12 @@ int src_set_config(struct processing_module *mod, uint32_t config_id,
 		   const uint8_t *fragment, size_t fragment_size, uint8_t *response,
 		   size_t response_size)
 {
-	assert_can_be_cold();
-
 	return -EINVAL;
 }
 
 int src_get_config(struct processing_module *mod, uint32_t config_id,
 		   uint32_t *data_offset_size, uint8_t *fragment, size_t fragment_size)
 {
-	assert_can_be_cold();
-
 	return -EINVAL;
 }
 
@@ -712,8 +696,6 @@ int src_reset(struct processing_module *mod)
 __cold int src_free(struct processing_module *mod)
 {
 	struct comp_data *cd = module_get_private_data(mod);
-
-	assert_can_be_cold();
 
 	comp_info(mod->dev, "src_free()");
 
