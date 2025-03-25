@@ -18,7 +18,6 @@
 #include <ipc/control.h>
 #include <ipc/stream.h>
 #include <ipc/topology.h>
-#include <module/module/llext.h>
 #include <rtos/alloc.h>
 #include <rtos/init.h>
 #include <rtos/panic.h>
@@ -139,7 +138,7 @@ static int drc_setup(struct drc_comp_data *cd, uint16_t channels, uint32_t rate)
  * End of DRC setup code. Next the standard component methods.
  */
 
-__cold static int drc_init(struct processing_module *mod)
+static int drc_init(struct processing_module *mod)
 {
 	struct module_data *md = &mod->priv;
 	struct comp_dev *dev = mod->dev;
@@ -196,7 +195,7 @@ cd_fail:
 	return ret;
 }
 
-__cold static int drc_free(struct processing_module *mod)
+static int drc_free(struct processing_module *mod)
 {
 	struct drc_comp_data *cd = module_get_private_data(mod);
 
@@ -408,6 +407,7 @@ SOF_MODULE_INIT(drc, sys_comp_module_drc_interface_init);
 /* modular: llext dynamic link */
 
 #include <module/module/api_ver.h>
+#include <module/module/llext.h>
 #include <rimage/sof/user/manifest.h>
 
 SOF_LLEXT_MOD_ENTRY(drc, &drc_interface);
