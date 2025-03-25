@@ -16,7 +16,6 @@
 #include <ipc/stream.h>
 #include <sof/audio/buffer.h>
 #include <sof/audio/audio_stream.h>
-#include <sof/lib/memory.h>
 #include <sof/list.h>
 
 #include "multiband_drc.h"
@@ -28,10 +27,9 @@ void multiband_drc_process_enable(bool *process_enabled)
 	*process_enabled = true;
 }
 
-__cold int multiband_drc_set_ipc_config(struct processing_module *mod, uint32_t param_id,
-					const uint8_t *fragment,
-					enum module_cfg_fragment_position pos,
-					uint32_t data_offset_size, size_t fragment_size)
+int multiband_drc_set_ipc_config(struct processing_module *mod, uint32_t param_id,
+				 const uint8_t *fragment, enum module_cfg_fragment_position pos,
+				 uint32_t data_offset_size, size_t fragment_size)
 {
 	struct sof_ipc4_control_msg_payload *ctl = (struct sof_ipc4_control_msg_payload *)fragment;
 	struct multiband_drc_comp_data *cd = module_get_private_data(mod);
@@ -63,8 +61,8 @@ __cold int multiband_drc_set_ipc_config(struct processing_module *mod, uint32_t 
 				  fragment_size);
 }
 
-__cold int multiband_drc_get_ipc_config(struct processing_module *mod,
-					struct sof_ipc_ctrl_data *cdata, size_t fragment_size)
+int multiband_drc_get_ipc_config(struct processing_module *mod, struct sof_ipc_ctrl_data *cdata,
+				 size_t fragment_size)
 {
 	struct multiband_drc_comp_data *cd = module_get_private_data(mod);
 
@@ -73,7 +71,7 @@ __cold int multiband_drc_get_ipc_config(struct processing_module *mod,
 	return comp_data_blob_get_cmd(cd->model_handler, cdata, fragment_size);
 }
 
-__cold int multiband_drc_params(struct processing_module *mod)
+int multiband_drc_params(struct processing_module *mod)
 {
 	struct sof_ipc_stream_params *params = mod->stream_params;
 	struct sof_ipc_stream_params comp_params;
